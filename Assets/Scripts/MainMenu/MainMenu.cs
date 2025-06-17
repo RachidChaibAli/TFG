@@ -1,3 +1,7 @@
+using GenerativeAI;
+using GenerativeAI.Types;
+using System;
+using System.IO;
 using TMPro;
 using UnityEngine;
 
@@ -15,6 +19,8 @@ public class MainMenu : MonoBehaviour
 
     private GameObject menu; // Referencia al menú actual
 
+    public TextAsset initialPromt; // Referencia al archivo de texto con el prompt inicial
+
     public void Start()
     {
         // Asegurarse de que solo el menú principal esté activo al inicio
@@ -22,6 +28,11 @@ public class MainMenu : MonoBehaviour
         optionsMenu.SetActive(false);
         playMenu.SetActive(false);
         alertPanel.SetActive(false);
+
+        var root = Application.dataPath;
+        var projectRoot = Directory.GetParent(root).FullName;
+        var envFilePath = Path.Combine(projectRoot, ".env");
+        DotEnv.Load(envFilePath);
     }
 
     public void OpenOptionsPanel()
@@ -67,7 +78,9 @@ public class MainMenu : MonoBehaviour
             return;
         }
 
-        ShowAlert("Creando nuevo mundo: " + worldName.text);
+        GenerationOrquestrator.Instance.Initialize(worldName.text, promt.text, initialPromt.text);
+        GenerationOrquestrator.Instance.StartGeneration();
+
     }
 
     public void ShowAlert(string message)
@@ -88,5 +101,10 @@ public class MainMenu : MonoBehaviour
         {
             menu.SetActive(true);
         }
+    }
+
+    public string LoadApiKey()
+    {
+        return Environment.GetEnvironmentVariable("GOOGLE_API_KEY");
     }
 }

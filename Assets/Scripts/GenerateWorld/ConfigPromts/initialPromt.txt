@@ -1,0 +1,6 @@
+Corrige, completa y mejora el siguiente prompt de configuración para la generación de un mundo en un videojuego. Hazlo más claro, detallado y coherente, eliminando ambigüedades y errores.
+
+IMPORTANTE:
+Tu respuesta debe ser únicamente el prompt corregido, sin explicaciones ni comentarios adicionales.
+
+El promt del usuario es el siguiente:
