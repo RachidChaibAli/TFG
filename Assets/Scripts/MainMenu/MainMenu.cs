@@ -1,6 +1,3 @@
-using GenerativeAI;
-using GenerativeAI.Types;
-using System;
 using System.IO;
 using TMPro;
 using UnityEngine;
@@ -12,14 +9,12 @@ public class MainMenu : MonoBehaviour
     public GameObject playMenu; // Referencia al UI del menú de juego
 
     public TMP_InputField worldName; // Referencia al campo de entrada de texto para el nombre del mundo
-    public TMP_InputField promt; // Referencia al campo de entrada de texto para el prompt
+    public TMP_InputField prompt; // Referencia al campo de entrada de texto para el prompt
 
     public GameObject alertPanel; // Referencia al panel de alerta
     public TMP_Text alertText;    // Referencia al texto de la alerta
 
     private GameObject menu; // Referencia al menú actual
-
-    public TextAsset initialPromt; // Referencia al archivo de texto con el prompt inicial
 
     public void Start()
     {
@@ -72,13 +67,13 @@ public class MainMenu : MonoBehaviour
     {
         menu = playMenu; // Guardar la referencia al menú de juego
 
-        if (string.IsNullOrEmpty(worldName.text) || string.IsNullOrEmpty(promt.text))
+        if (string.IsNullOrEmpty(worldName.text) || string.IsNullOrEmpty(prompt.text))
         {
             ShowAlert("El nombre del mundo y el prompt no pueden estar vacíos.");
             return;
         }
 
-        GenerationOrquestrator.Instance.Initialize(worldName.text, promt.text, initialPromt.text);
+        GenerationOrquestrator.Instance.Initialize(worldName.text, prompt.text);
         GenerationOrquestrator.Instance.StartGeneration();
 
     }
@@ -101,10 +96,5 @@ public class MainMenu : MonoBehaviour
         {
             menu.SetActive(true);
         }
-    }
-
-    public string LoadApiKey()
-    {
-        return Environment.GetEnvironmentVariable("GOOGLE_API_KEY");
     }
 }
