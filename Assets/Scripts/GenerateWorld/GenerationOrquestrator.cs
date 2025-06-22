@@ -5,7 +5,7 @@ using System.IO;
 using UnityEngine;
 using static SplitScenesClasses;
 
-public class GenerationOrquestrator
+public class GenerationOrquestrator : MonoBehaviour
 {
     private static GenerationOrquestrator _instance;
     public static GenerationOrquestrator Instance
@@ -18,41 +18,48 @@ public class GenerationOrquestrator
     }
 
     public string WorldName { get; private set; }
-    public string Prompt { get; private set; }
+    public string UserPrompt { get; private set; }
     public string InitialPrompt { get; private set; }
     public string SplitScenesPrompt { get; private set; }
     public string BasePrompt { get; private set; }
     public string WorldPath => Path.Combine(Application.persistentDataPath, WorldName);
+    public string SpritesPath => Path.Combine(WorldPath, "sprites");
     public List<Escena> Scenes { get; private set; } = new List<Escena>();
-    public GoogleAi GoogleAi { get; private set; }
-    public GenerativeModel GenerativeModel { get; private set; }
+
+    private GeminiClient geminiClient;
+
+    private StableDiffusionClient stableDiffusionClient;
 
     private GenerationOrquestrator() { }
 
     public void Initialize(string worldName, string prompt)
     {
         WorldName = worldName;
-        Prompt = prompt;
+        UserPrompt = prompt;
 
         string configPath = Path.Combine(Application.dataPath, "Scripts/GenerateWorld/ConfigPrompts");
 
         InitialPrompt = File.ReadAllText(Path.Combine(configPath, "initialPrompt.txt"));
         SplitScenesPrompt = File.ReadAllText(Path.Combine(configPath, "splitScenesPrompt.txt"));
 
-        GoogleAi = new GoogleAi();
-        GenerativeModel = GoogleAi.CreateGenerativeModel(GoogleAIModels.Gemini15Flash);
+        geminiClient = new GeminiClient();
 
-        // Crear una carpeta para el mundo si no existe
         if (!Directory.Exists(WorldPath))
         {
             Directory.CreateDirectory(WorldPath);
             Debug.Log($"Carpeta del mundo creada en: {WorldPath}");
         }
+
+        if (!Directory.Exists(SpritesPath))
+        {
+            Directory.CreateDirectory(SpritesPath);
+            Debug.Log($"Carpeta de sprites creada en: {SpritesPath}");
+        }
     }
 
     public void StartGeneration()
     {
-        if (string.IsNullOrEmpty(WorldName) || string.IsNullOrEmpty(Prompt))
+        if (string.IsNullOrEmpty(WorldName) || string.IsNullOrEmpty(UserPrompt))
         {
             Debug.LogError("El nombre del mundo y el prompt no pueden estar vacíos.");
             return;
@@ -63,18 +70,17 @@ public class GenerationOrquestrator
 
     private async void ParsePrompt()
     {
-        var response = await GenerativeModel.GenerateContentAsync(InitialPrompt + "\n" + Prompt);
-        File.WriteAllText(Path.Combine(WorldPath, "basePrompt.txt"), response.Text);
-        BasePrompt = response.Text;
+        var responseText = await geminiClient.GenerateContentAsync(InitialPrompt + "\n" + UserPrompt);
+        File.WriteAllText(Path.Combine(WorldPath, "basePrompt.txt"), responseText);
+        BasePrompt = responseText;
         Debug.Log($"Generación completada. Contenido guardado en: {Path.Combine(WorldPath, "basePrompt.txt")}");
     }
+
     private async void SplitPromptIntoScenes()
     {
-        var response = await GenerativeModel.GenerateContentAsync(SplitScenesPrompt + "\n" + BasePrompt);
+        var responseText = await geminiClient.GenerateContentAsync(SplitScenesPrompt + "\n" + BasePrompt);
 
-        string rawText = response.Text.Trim();
-
-        // Elimina los delimitadores de bloque de código si existen
+        string rawText = responseText.Trim();
         if (rawText.StartsWith("```json"))
             rawText = rawText[7..].TrimStart();
         if (rawText.EndsWith("```"))
@@ -95,5 +101,17 @@ public class GenerationOrquestrator
         }
     }
 
+    public async void PruebaImagenGenerada()
+    {
+        string imagePath = Path.Combine(WorldPath, "sprites/generatedImage.png");
 
+        // Crear un GameObject temporal para usar StableDiffusionClient
+        var tempObj = new GameObject("StableDiffusionClientTemp");
+        var tempClient = tempObj.AddComponent<StableDiffusionClient>();
+
+        await tempClient.GenerateImageAndSaveAsync("Dame un png sin fondo de un dragon occidental en estilo pixel art", imagePath);
+        Debug.Log($"Imagen generada y guardada en: {imagePath}");
+
+        Object.DestroyImmediate(tempObj);
+    }
 }

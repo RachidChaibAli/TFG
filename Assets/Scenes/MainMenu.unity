@@ -2860,7 +2860,7 @@ MonoBehaviour:
   optionsMenu: {fileID: 1800812196}
   playMenu: {fileID: 1204508799}
   worldName: {fileID: 1572470534}
-  promt: {fileID: 1908823710}
+  prompt: {fileID: 1908823710}
   alertPanel: {fileID: 2127249873}
   alertText: {fileID: 889877600}
 --- !u!1 &1406162305
@@ -2875,7 +2875,7 @@ GameObject:
   - component: {fileID: 1406162308}
   - component: {fileID: 1406162307}
   m_Layer: 5
-  m_Name: Promt
+  m_Name: Prompt
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3173,7 +3173,13 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\u200B"
+  m_text: "Quiero un mundo de fantas\xEDa medieval pero que tambi\xE9n tenga cosas
+    futuristas, como robots y magia al mismo tiempo. El mapa debe ser grande, pero
+    tampoco tanto, y que haya muchos personajes distintos, pero no s\xE9 cu\xE1ntos.
+    Me gustar\xEDa que haya ciudades flotantes y bosques m\xE1gicos, pero que no
+    sea igual que otros juegos famosos. No s\xE9 si prefiero que haya misiones principales
+    o solo secundarias, lo que veas mejor. El clima deber\xEDa cambiar, pero no todo
+    el tiempo. Ah, y que haya dragones, pero que no sean malos siempre.\r\n"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -3207,8 +3213,8 @@ MonoBehaviour:
   m_fontSizeMin: 18
   m_fontSizeMax: 72
   m_fontStyle: 0
-  m_HorizontalAlignment: 1
-  m_VerticalAlignment: 256
+  m_HorizontalAlignment: 2
+  m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
   m_wordSpacing: 0
@@ -3218,7 +3224,7 @@ MonoBehaviour:
   m_charWidthMaxAdj: 0
   m_TextWrappingMode: 3
   m_wordWrappingRatios: 0.4
-  m_overflowMode: 0
+  m_overflowMode: 4
   m_linkedTextComponent: {fileID: 0}
   parentLinkedComponent: {fileID: 0}
   m_enableKerning: 0
@@ -4043,7 +4049,7 @@ GameObject:
   - component: {fileID: 1908823712}
   - component: {fileID: 1908823710}
   m_Layer: 5
-  m_Name: PromtInput
+  m_Name: PromptInput
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

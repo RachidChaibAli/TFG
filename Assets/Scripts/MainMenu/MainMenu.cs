@@ -67,14 +67,20 @@ public class MainMenu : MonoBehaviour
     {
         menu = playMenu; // Guardar la referencia al menú de juego
 
+        
+
         if (string.IsNullOrEmpty(worldName.text) || string.IsNullOrEmpty(prompt.text))
         {
             ShowAlert("El nombre del mundo y el prompt no pueden estar vacíos.");
             return;
         }
-
         GenerationOrquestrator.Instance.Initialize(worldName.text, prompt.text);
-        GenerationOrquestrator.Instance.StartGeneration();
+        GenerationOrquestrator.Instance.PruebaImagenGenerada();
+        
+        return;
+
+        
+        
 
     }
 
