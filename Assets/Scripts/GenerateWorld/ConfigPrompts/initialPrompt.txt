@@ -1,6 +1,5 @@
-Corrige, completa y mejora el siguiente prompt de configuración para la generación de un mundo en un videojuego. Hazlo más claro, detallado y coherente, eliminando ambigüedades y errores.
+Improve, complete, and refine the following description to configure a 2D world for a video game developed with the Unity engine. The result should be clear, coherent, and free of ambiguity, grammar mistakes, or spelling errors. The generated world should be compact and manageable, designed to be split into approximately 5 to 10 Unity scenes (such as distinct levels or environments).
 
-IMPORTANTE:
-Tu respuesta debe ser únicamente el prompt corregido, sin explicaciones ni comentarios adicionales.
+Return only the improved description, without explanations or additional comments.
 
-El promt del usuario es el siguiente:
+User description:

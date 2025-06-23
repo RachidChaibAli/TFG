@@ -75,7 +75,7 @@ public class MainMenu : MonoBehaviour
             return;
         }
         GenerationOrquestrator.Instance.Initialize(worldName.text, prompt.text);
-        GenerationOrquestrator.Instance.PruebaImagenGenerada();
+        GenerationOrquestrator.Instance.StartGeneration();
         
         return;
 

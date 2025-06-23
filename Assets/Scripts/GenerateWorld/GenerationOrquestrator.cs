@@ -2,10 +2,11 @@ using GenerativeAI;
 using Newtonsoft.Json;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
 using UnityEngine;
 using static SplitScenesClasses;
 
-public class GenerationOrquestrator : MonoBehaviour
+public class GenerationOrquestrator 
 {
     private static GenerationOrquestrator _instance;
     public static GenerationOrquestrator Instance
@@ -19,9 +20,11 @@ public class GenerationOrquestrator : MonoBehaviour
 
     public string WorldName { get; private set; }
     public string UserPrompt { get; private set; }
-    public string InitialPrompt { get; private set; }
-    public string SplitScenesPrompt { get; private set; }
     public string BasePrompt { get; private set; }
+    public string InitialPrompt { get; private set; }
+    public string GenerateScenesPrompt { get; private set; }
+    public string CompleteScenesPrompt { get; private set; }
+    
     public string WorldPath => Path.Combine(Application.persistentDataPath, WorldName);
     public string SpritesPath => Path.Combine(WorldPath, "sprites");
     public List<Escena> Scenes { get; private set; } = new List<Escena>();
@@ -40,7 +43,8 @@ public class GenerationOrquestrator : MonoBehaviour
         string configPath = Path.Combine(Application.dataPath, "Scripts/GenerateWorld/ConfigPrompts");
 
         InitialPrompt = File.ReadAllText(Path.Combine(configPath, "initialPrompt.txt"));
-        SplitScenesPrompt = File.ReadAllText(Path.Combine(configPath, "splitScenesPrompt.txt"));
+        CompleteScenesPrompt = File.ReadAllText(Path.Combine(configPath, "completeScenesPrompt.txt"));
+        GenerateScenesPrompt = File.ReadAllText(Path.Combine(configPath, "generateScenesPrompt.txt"));
 
         geminiClient = new GeminiClient();
 
@@ -57,28 +61,30 @@ public class GenerationOrquestrator : MonoBehaviour
         }
     }
 
-    public void StartGeneration()
+    public async void StartGeneration()
     {
         if (string.IsNullOrEmpty(WorldName) || string.IsNullOrEmpty(UserPrompt))
         {
             Debug.LogError("El nombre del mundo y el prompt no pueden estar vacíos.");
             return;
         }
-        ParsePrompt();
-        SplitPromptIntoScenes();
+        await ParsePrompt();
+        await GenerateScenes();
+        await CompleteScenes();
     }
 
-    private async void ParsePrompt()
+    private async Task ParsePrompt()
     {
         var responseText = await geminiClient.GenerateContentAsync(InitialPrompt + "\n" + UserPrompt);
         File.WriteAllText(Path.Combine(WorldPath, "basePrompt.txt"), responseText);
         BasePrompt = responseText;
+        Debug.Log("Prompt base generado:\n" + BasePrompt);
         Debug.Log($"Generación completada. Contenido guardado en: {Path.Combine(WorldPath, "basePrompt.txt")}");
     }
 
-    private async void SplitPromptIntoScenes()
+    private async Task GenerateScenes()
     {
-        var responseText = await geminiClient.GenerateContentAsync(SplitScenesPrompt + "\n" + BasePrompt);
+        var responseText = await geminiClient.GenerateContentAsync(GenerateScenesPrompt + "\n" + BasePrompt);
 
         string rawText = responseText.Trim();
         if (rawText.StartsWith("```json"))
@@ -86,20 +92,72 @@ public class GenerationOrquestrator : MonoBehaviour
         if (rawText.EndsWith("```"))
             rawText = rawText[..^3].TrimEnd();
 
-        Debug.Log("Respuesta limpia:\n" + rawText);
 
         try
         {
             var escenas = JsonConvert.DeserializeObject<List<Escena>>(rawText);
             Debug.Log($"Se han parseado {escenas.Count} escenas.");
-            File.WriteAllText(Path.Combine(WorldPath, "scenes.json"), rawText);
+            File.WriteAllText(Path.Combine(WorldPath, "generateScenes.json"), rawText);
             Scenes = escenas;
         }
         catch (JsonReaderException ex)
         {
             Debug.LogError("Error al deserializar el JSON: " + ex.Message);
         }
+
+        
+        foreach (var escena in Scenes)
+        {
+            var scenePath = Path.Combine(WorldPath, escena.Id);
+            if (!Directory.Exists(scenePath))
+            {
+                Directory.CreateDirectory(scenePath);
+                Debug.Log($"Carpeta de escena creada en: {scenePath}");
+
+                // Serializar el objeto 'escena' a JSON antes de escribirlo en el archivo
+                string escenaJson = JsonConvert.SerializeObject(escena, Formatting.Indented);
+                File.WriteAllText(Path.Combine(scenePath, "sceneInfo.json"), escenaJson);
+            }
+        }
     }
+
+    private async Task CompleteScenes()
+    {
+        Debug.Log("Iniciando la generación de escenas completas...");
+        Debug.Log($"Total de escenas a completar: {Scenes.Count}");
+        for (int i=0; i < Scenes.Count; i++)
+        {
+            var escena = Scenes[i];
+
+            var responseText = await geminiClient.GenerateContentAsync(CompleteScenesPrompt + "\n" + JsonConvert.SerializeObject(escena, Formatting.Indented));
+
+            string rawText = responseText.Trim();
+            if (rawText.StartsWith("```json"))
+                rawText = rawText[7..].TrimStart();
+            if (rawText.EndsWith("```"))
+                rawText = rawText[..^3].TrimEnd();
+
+            try
+            {
+                var escenasCompletas = JsonConvert.DeserializeObject<List<Escena>>(rawText);
+                var escenaCompleta = escenasCompletas[0];
+                Debug.Log($"Escena {escenaCompleta.Id} completada.");
+
+                Scenes[i] = escenaCompleta; // Actualizar la escena en la lista
+
+                // Guardar la escena completa en su carpeta
+                string scenePath = Path.Combine(WorldPath, escenaCompleta.Id, "completeScene.json");
+                File.WriteAllText(scenePath, JsonConvert.SerializeObject(escenaCompleta, Formatting.Indented));
+            }
+            catch (JsonReaderException ex)
+            {
+                Debug.LogError($"Error al deserializar la escena {escena.Id}: " + ex.Message);
+            }
+
+        }
+    }
+
+
 
     public async void PruebaImagenGenerada()
     {

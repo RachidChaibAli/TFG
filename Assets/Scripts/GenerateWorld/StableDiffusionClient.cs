@@ -5,6 +5,7 @@ using UnityEngine.Networking;
 using System.Text;
 using System.IO;
 using System.Threading.Tasks;
+using System;
 
 [System.Serializable]
 public class TextPrompt
@@ -37,10 +38,10 @@ public class StableDiffusionClient : MonoBehaviour
 
     private void Awake()
     {
-        apiKey = System.Environment.GetEnvironmentVariable("STABLE_DIFFUSION_API_KEY");
+        apiKey = Environment.GetEnvironmentVariable("STABLE_DIFFUSION_API_KEY");
         if (string.IsNullOrEmpty(apiKey))
         {
-            throw new System.InvalidOperationException("La variable de entorno STABLE_DIFFUSION_API_KEY no está definida.");
+            throw new InvalidOperationException("La variable de entorno STABLE_DIFFUSION_API_KEY no está definida.");
         }
     }
 

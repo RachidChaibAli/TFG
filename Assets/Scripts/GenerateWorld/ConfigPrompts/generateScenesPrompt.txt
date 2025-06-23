@@ -1,0 +1,16 @@
+Imagina que eres un diseñador narrativo para un videojuego 2D. Divide la historia o concepto base en exactamente 7 escenas principales.
+Para cada escena, proporciona:
+
+Id de la escena (escena_1, escena_2...)
+
+Un título breve y descriptivo.
+
+Una descripción narrativa que sitúe al jugador en el entorno, mencione el clima, los personajes clave y los eventos principales de la escena.
+
+Las escenas deben mostrar variedad de ubicaciones, personajes y situaciones relevantes para la trama. Mantén la coherencia y progresión narrativa entre escenas. Intenta que el juego termine en la utlima escena si es una historia lineal.
+
+Debes intentar en la medida de lo posible, teniendo en cuenta las limitaciones en el numero de escenas, incluir todo lo que se explique en el prompt base.
+
+Devuelveme la respuesta con un JSON con una lista de escenas unicamente nada más.
+
+El prompt base es:
