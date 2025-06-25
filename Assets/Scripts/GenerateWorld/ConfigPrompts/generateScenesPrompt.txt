@@ -1,16 +1,14 @@
-Imagina que eres un diseñador narrativo para un videojuego 2D. Divide la historia o concepto base en exactamente 7 escenas principales.
-Para cada escena, proporciona:
+Imagine you are a narrative designer for a 2D video game. Divide the base story or concept into exactly 7 main scenes.
+For each scene, provide:
 
-Id de la escena (escena_1, escena_2...)
+- Scene ID (scene_1, scene_2, ...)
+- A brief and descriptive title.
+- A narrative description that places the player in the environment, mentions the weather, key characters, and the main events of the scene.
 
-Un título breve y descriptivo.
+The scenes should show a variety of locations, characters, and situations relevant to the plot. Maintain coherence and narrative progression between scenes. Try to ensure the game ends in the last scene if it is a linear story.
 
-Una descripción narrativa que sitúe al jugador en el entorno, mencione el clima, los personajes clave y los eventos principales de la escena.
+You should try, as much as possible given the limitation on the number of scenes, to include everything explained in the base prompt.
 
-Las escenas deben mostrar variedad de ubicaciones, personajes y situaciones relevantes para la trama. Mantén la coherencia y progresión narrativa entre escenas. Intenta que el juego termine en la utlima escena si es una historia lineal.
+Return the answer as a JSON with a list of scenes only, nothing else.
 
-Debes intentar en la medida de lo posible, teniendo en cuenta las limitaciones en el numero de escenas, incluir todo lo que se explique en el prompt base.
-
-Devuelveme la respuesta con un JSON con una lista de escenas unicamente nada más.
-
-El prompt base es:
+The base prompt is:

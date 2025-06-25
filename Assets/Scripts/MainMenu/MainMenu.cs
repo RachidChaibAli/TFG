@@ -28,6 +28,9 @@ public class MainMenu : MonoBehaviour
         var projectRoot = Directory.GetParent(root).FullName;
         var envFilePath = Path.Combine(projectRoot, ".env");
         DotEnv.Load(envFilePath);
+
+        GenerationOrquestrator.Instance.Initialize("prueba", "Quiero un mundo de fantasía medieval pero que también tenga cosas futuristas, como robots y magia al mismo tiempo. El mapa debe ser grande, pero tampoco tanto, y que haya muchos personajes distintos, pero no sé cuántos. Me gustaría que haya ciudades flotantes y bosques mágicos, pero que no sea igual que otros juegos famosos. No sé si prefiero que haya misiones principales o solo secundarias, lo que veas mejor. El clima debería cambiar, pero no todo el tiempo. Ah, y que haya dragones, pero que no sean malos siempre.\r\n");
+        GenerationOrquestrator.Instance.StartGeneration();
     }
 
     public void OpenOptionsPanel()
@@ -74,8 +77,7 @@ public class MainMenu : MonoBehaviour
             ShowAlert("El nombre del mundo y el prompt no pueden estar vacíos.");
             return;
         }
-        GenerationOrquestrator.Instance.Initialize(worldName.text, prompt.text);
-        GenerationOrquestrator.Instance.StartGeneration();
+        
         
         return;
 

@@ -13,9 +13,9 @@ public class SplitScenesClasses
 
     public class Elementos
     {
-        public List<sprites> SpritesPrincipales { get; set; }
         public List<NPC> NPCs { get; set; }
         public List<objetosInteractivos> ObjetosInteractivos { get; set; }
+        public List<sprites> SpritesPrincipales { get; set; }
         public List<ScriptEvento> ScriptsEventos { get; set; }
     }
 
