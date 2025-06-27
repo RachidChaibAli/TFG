@@ -1,0 +1,1 @@
+A clear, Unity 2d game style sprite, pixel art, top-down perspective, seen from above, overhead perspective, single character, not a sprite sheet, transparent background, no text or watermark, focused, clean outline, chibi,

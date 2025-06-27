@@ -22,21 +22,20 @@ public class SDRequestBody
     public int width = 512;
     public float cfg_scale = 7;
     public string clip_guidance_preset = "NONE";
-    public string sampler = "K_EULER";
     public int samples = 1;
     public int seed = 0;
-    public int steps = 30;
+    public int steps = 50;
     public string style_preset = "pixel-art";
 }
 
-public class StableDiffusionClient : MonoBehaviour
+public class StableDiffusionClient 
 {
     private string apiKey;
 
     public string engineId = "stable-diffusion-v1-6";
     public string apiUrl = "https://api.stability.ai/v1/generation/";
 
-    private void Awake()
+    public StableDiffusionClient()
     {
         apiKey = Environment.GetEnvironmentVariable("STABLE_DIFFUSION_API_KEY");
         if (string.IsNullOrEmpty(apiKey))
@@ -86,12 +85,19 @@ public class StableDiffusionClient : MonoBehaviour
         }
     }
 
-    public async Task GenerateImageAndSaveAsync(string prompt, string outputPath)
+    public async Task<bool> GenerateImageAndSaveAsync(string prompt, string outputPath, string negativePrompt = null)
     {
         string url = $"{apiUrl}{engineId}/text-to-image";
+        var textPrompts = new List<TextPrompt> { new() { text = prompt, weight = 2.0f } };
+        if (!string.IsNullOrEmpty(negativePrompt))
+        {
+            // Peso negativo recomendado por la API de Stability
+            textPrompts.Add(new TextPrompt { text = negativePrompt, weight = -1.5f });
+        }
+
         SDRequestBody requestBody = new()
         {
-            text_prompts = new List<TextPrompt> { new() { text = prompt, weight = 1.0f } },
+            text_prompts = textPrompts,
             height = 512,
             width = 512,
         };
@@ -114,10 +120,14 @@ public class StableDiffusionClient : MonoBehaviour
             byte[] data = request.downloadHandler.data;
             File.WriteAllBytes(outputPath, data);
             Debug.Log($"Imagen guardada directamente en: {outputPath}");
+            string hexHeader = System.BitConverter.ToString(data, 0, Mathf.Min(8, data.Length));
+            Debug.Log($"Cabecera PNG: {hexHeader}");
+            return true;
         }
         else
         {
             Debug.LogError($"SD API Error: {request.error}");
+            return false;
         }
     }
 }

@@ -7,17 +7,19 @@ Rules:
 - Each script must include the field "objetoAsociado", which is the id of the object, NPC, sprite, or other scene element to which the event or script is attached or relevant.
 - Scripts should be relevant to the interactions possible in the scene, such as dialogue triggers, item pickups, puzzles, or special environmental effects.
 - Do not generate NPCs, objects, or sprites in this step.
-- The output must be a JSON array of script/event entries, each with the fields: "id", "nombre" (name), "descripcion" (description), and "objetoAsociado" (id).
+- The output must be a JSON array of script/event entries, each with the fields: "id", "name" , "description" , and "associatedObject" (id).
 
 Your output should only be the JSON array of event scripts for this scene, following the structure, ingore the contents of the example when generating the npcs, use only its structure:
 [
   {
-    "id": "escena_2_script_1",
-    "nombre": "DialogueWithLibrarian",
-    "descripcion": "Triggers a conversation with the Librarian Shade about the library's history.",
-    "objetoAsociado": "escena_2_npc_1"
+    "id": "scene_2_script_1",
+    "name": "DialogueWithLibrarian",
+    "description": "Triggers a conversation with the Librarian Shade about the library's history.",
+    "associatedObject": "scene_2_npc_1"
   }
 ]
+
+IMPORTANT: IF you detect a NPC with the id "player" that one is the main character and the one the player controls, you must add a detailed description to the script associated to the player. 
 
 IMPORTANT: Return ONLY the JSON array of event scripts. Do NOT include any explanation, comments, markdown, or extra text. Output must start and end with [ and ].
 

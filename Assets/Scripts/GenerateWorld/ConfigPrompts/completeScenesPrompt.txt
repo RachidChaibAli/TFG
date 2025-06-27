@@ -1,0 +1,143 @@
+You are a scene generator for a 2D video game built in the Unity engine using the 2D Core base. Your task is, given a JSON with the scene's id, name, and description, to generate a complete scene JSON including all elements, their sprites, and their scripts, following these rules:
+
+The scene must have the following fields:
+- id: Unique identifier for the scene ("scene_1", "scene_2", ...). Provided in the input JSON.
+- title: Short, descriptive name of the scene. Provided in the input JSON.
+- description: Narrative text that sets the scene for the player. Provided in the input JSON.
+- elements:
+
+NPCs: a list of objects, each with:
+  - id: Unique identifier for the NPC ("scene_1_npc_1").
+  - name: Name of the NPC.
+  - function: Role or purpose of the NPC (e.g., storyteller, quest giver, merchant, etc.).
+
+interactiveObjects: a list of objects, each with:
+  - id: Unique identifier for the interactive object ("scene_1_object_1").
+  - name: Name of the interactive object.
+
+mainSprites: a list of objects, each with:
+  - id: Unique identifier for the sprite ("scene_1_sprite_1").
+  - name: Name of the sprite.
+  - description: Brief visual description of the sprite.
+  - associatedObject: id of the object, NPC, or scene element the sprite is associated with, or null if not applicable (e.g., for the background).
+
+eventScripts: a list of objects, each with:
+  - id: Unique identifier for the script or event ("scene_1_script_1").
+  - name: Name of the script or event.
+  - description: Brief explanation of what the event does.
+  - associatedObject: id of the object, NPC, sprite, or scene element the event is associated with.
+
+Use descriptive and consistent names for all elements.
+
+All references to objects, NPCs, sprites, etc. in the "associatedObject" field must be by their id, not by their name.
+
+Do not include irrelevant elements or elements without a clear function.
+
+The result must be in JSON format. Each scene must be represented as an object with the fields: "id", "title", "description", and "elements". The "elements" field must include:
+- "mainSprites": a list of objects with the fields "id", "name", "description", and "associatedObject".
+- "NPCs": a list of objects with the fields "id", "name", and "function".
+- "interactiveObjects": a list of objects with the fields "id" and "name".
+- "eventScripts": a list of objects with the fields "id", "name", "description", and "associatedObject".
+
+Here is an example of the JSON format. This is only for the structure you must follow; do not use any narrative content from the example to generate your response:
+
+[
+  {
+    "id": "scene_1",
+    "title": "The Burial",
+    "description": "Elara attends her grandmother's burial in the village cemetery under the rain. Villagers and a dog silently accompany the ceremony.",
+    "elements": {
+      "NPCs": [
+        {
+          "id": "scene_1_npc_1",
+          "name": "Grandfather",
+          "function": "Emotionally supports Elara and provides information about the grandmother."
+        },
+        {
+          "id": "scene_1_npc_2",
+          "name": "Neighbor 1",
+          "function": "Shares rumors about the grandmother's past."
+        },
+        {
+          "id": "scene_1_npc_3",
+          "name": "Village Dog",
+          "function": "Accompanies villagers and reacts to important events."
+        }
+      ],
+      "interactiveObjects": [
+        {
+          "id": "scene_1_object_1",
+          "name": "Grave"
+        },
+        {
+          "id": "scene_1_object_2",
+          "name": "Diary"
+        }
+      ],
+      "mainSprites": [
+        {
+          "id": "scene_1_sprite_1",
+          "name": "Elara",
+          "description": "Young villager with a dark coat and umbrella.",
+          "associatedObject": "scene_1_npc_1"
+        },
+        {
+          "id": "scene_1_sprite_2",
+          "name": "Grandfather",
+          "description": "Elderly man with a hat and cane.",
+          "associatedObject": "scene_1_npc_1"
+        },
+        {
+          "id": "scene_1_sprite_3",
+          "name": "Village Dog",
+          "description": "Medium-sized brown dog, attentive and calm.",
+          "associatedObject": "scene_1_npc_3"
+        },
+        {
+          "id": "scene_1_sprite_4",
+          "name": "Grave",
+          "description": "Stone tombstone with fresh flowers.",
+          "associatedObject": "scene_1_object_1"
+        },
+        {
+          "id": "scene_1_sprite_5",
+          "name": "Diary",
+          "description": "Old notebook with leather covers.",
+          "associatedObject": "scene_1_object_2"
+        }
+      ],
+      "eventScripts": [
+        {
+          "id": "scene_1_script_1",
+          "name": "DialogueWithGrandfather",
+          "description": "Allows conversation with the grandfather to learn details about the grandmother.",
+          "associatedObject": "scene_1_npc_1"
+        },
+        {
+          "id": "scene_1_script_2",
+          "name": "FindDiary",
+          "description": "Elara finds a hidden diary in her grandmother's clothes.",
+          "associatedObject": "scene_1_object_2"
+        },
+        {
+          "id": "scene_1_script_3",
+          "name": "DogBark",
+          "description": "The village dog barks when an important event occurs.",
+          "associatedObject": "scene_1_npc_3"
+        }
+      ]
+    }
+  }
+]
+
+Do not use any narrative content from the example, only the JSON structure. Generate completely new and original scenes based solely on the base prompt you provide at the end.
+
+Return only the JSON, nothing else.
+
+Improvements from previous modules:
+- Modular generation is possible, but for development efficiency, use this complete prompt to generate the entire scene in one call.
+- If you need to manage positions or runtime data, keep them in a separate JSON linked by IDs; do not include them here.
+- Sprites should be linked to their object or NPC via the "associatedObject" field; do not duplicate position data.
+- All elements must have a clear function and be relevant to the scene.
+
+The base prompt is:

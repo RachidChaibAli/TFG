@@ -6,21 +6,23 @@ Rules:
 - Each NPC must have a clear function or role in the scene (for example: storyteller, quest giver, merchant, etc.).
 - The NPCs should fit the narrative and context provided in the scene's title and description.
 - Do not generate other elements (objects, sprites, scripts) in this step.
-- The output must be a JSON array of NPC objects, each with the fields: "id", "nombre" (name), and "funcion" (function/role).
+- The output must be a JSON array of NPC objects, each with the fields: "id", "name", and "role".
+
+IMPORTANT: Only if the input JSON you receive has the "scene_1" id, you must create a special NPC that will be the main character and add an special id "player" instead of the regular one, if you do not receive the first scene or the one with "scene_1" id you MUST not create the main character. 
 
 Input JSON example:
 {
   "id": "escena_2",
-  "titulo": "The Forgotten Library",
-  "descripcion": "The player enters a dimly lit, ancient library filled with dusty books and mysterious artifacts. Shadows move between the shelves, and a sense of secrecy fills the air."
+  "title": "The Forgotten Library",
+  "description": "The player enters a dimly lit, ancient library filled with dusty books and mysterious artifacts. Shadows move between the shelves, and a sense of secrecy fills the air."
 }
 
 Your output should only be the JSON array of NPCs for this scene, following the structure, ingore the contents of both examples when generating the npcs, use only their structure:
 [
   {
     "id": "escena_2_npc_1",
-    "nombre": "Librarian Shade",
-    "funcion": "Guardian of the library's secrets and guide to hidden knowledge."
+    "name": "Librarian Shade",
+    "role": "Guardian of the library's secrets and guide to hidden knowledge."
   },
   ...
 ]

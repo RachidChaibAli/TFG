@@ -45,30 +45,65 @@ public class GenerateScenes
 
         GenerateSpritesPrompt = File.ReadAllText(Path.Combine(promptsPath, "generateSpritesPrompt.txt"));
 
-        //GenerateEventScriptsPrompt = File.ReadAllText(Path.Combine(promptsPath, "generateEventScriptsPrompt.txt"));
+        GenerateEventScriptsPrompt = File.ReadAllText(Path.Combine(promptsPath, "generateEventScriptsPrompt.txt"));
+
         WorldPath = worldPath;
     }
 
-    public async Task GenerateAllScenes()
+    public async Task<List<Escena>> GenerateAllScenes()
     {
 
         await GenerateScenesBase();
 
+        var tasks = new List<Task>();
+
         foreach (var scene in Scenes)
         {
-            await GenerateNPCs(scene);
-            EnsureIds(scene.Elementos?.NPCs, $"escena_{scene.Id + 1}_npc");
-            await GenerateInteractiveObjects(scene);
-            EnsureIds(scene.Elementos?.ObjetosInteractivos, $"escena_{scene.Id + 1}_objetoInteractivo");
-            await GenerateSprites(scene);
-            EnsureIds(scene.Elementos?.SpritesPrincipales, $"escena_{scene.Id + 1}_sprite");
-            await GenerateEventScripts(scene);
-            EnsureIds(scene.Elementos?.ScriptsEventos, $"escena_{scene.Id + 1}_scriptEvento");
+            tasks.Add(GenerateSingleScene(scene));
         }
+
+        await Task.WhenAll(tasks);
+
+        return Scenes;
     }
+
+    private async Task GenerateSingleScene(Escena scene)
+    {
+        await GenerateNPCs(scene);
+
+
+
+        EnsureIds(scene.Elementos?.NPCs, $"scene_{scene.Id + 1}_npc");
+
+
+        await GenerateInteractiveObjects(scene);
+
+
+        EnsureIds(scene.Elementos?.InteractiveObjects, $"scene_{scene.Id + 1}_interactiveObject");
+
+        await GenerateSprites(scene);
+
+
+
+        EnsureIds(scene.Elementos?.MainSprites, $"scene_{scene.Id + 1}_sprite");
+
+
+
+        await GenerateEventScripts(scene);
+
+
+        EnsureIds(scene.Elementos?.EventScripts, $"scene_{scene.Id + 1}_eventScript");
+
+        Debug.Log($"Escena {scene.Id} generada con éxito.");
+        Debug.Log($"Escena completa: {JsonConvert.SerializeObject(scene, Formatting.Indented)}");
+    }
+
+
     private async Task GenerateScenesBase()
     {
         var responseText = await geminiClient.GenerateContentAsync(GenerateScenesPrompt + "\n" + BasePrompt);
+
+        Debug.Log($"Respuesta de Gemini para escenas: {responseText}");
 
         string rawText = responseText.Trim();
         if (rawText.StartsWith("```json"))
@@ -158,11 +193,11 @@ public class GenerateScenes
             rawText = rawText[..^3].TrimEnd();
         try
         {
-            var objetosInteractivos = JsonConvert.DeserializeObject<List<objetosInteractivos>>(rawText);
+            var objetosInteractivos = JsonConvert.DeserializeObject<List<InteractiveObject>>(rawText);
             if (objetosInteractivos != null && objetosInteractivos.Count > 0)
             {
                 scene.Elementos ??= new Elementos();
-                scene.Elementos.ObjetosInteractivos = objetosInteractivos;
+                scene.Elementos.InteractiveObjects = objetosInteractivos;
                 Debug.Log($"Se han generado {objetosInteractivos.Count} objetos interactivos para la escena {scene.Id}.");
             }
             else
@@ -196,11 +231,11 @@ public class GenerateScenes
             rawText = rawText[..^3].TrimEnd();
         try
         {
-            var sprites = JsonConvert.DeserializeObject<List<sprites>>(rawText);
+            var sprites = JsonConvert.DeserializeObject<List<Sprites>>(rawText);
             if (sprites != null && sprites.Count > 0)
             {
                 scene.Elementos ??= new Elementos();
-                scene.Elementos.SpritesPrincipales = sprites;
+                scene.Elementos.MainSprites = sprites;
                 Debug.Log($"Se han generado {sprites.Count} sprites para la escena {scene.Id}.");
             }
             else
@@ -234,11 +269,11 @@ public class GenerateScenes
             rawText = rawText[..^3].TrimEnd();
         try
         {
-            var scriptsEventos = JsonConvert.DeserializeObject<List<ScriptEvento>>(rawText);
+            var scriptsEventos = JsonConvert.DeserializeObject<List<EventScript>>(rawText);
             if (scriptsEventos != null && scriptsEventos.Count > 0)
             {
                 scene.Elementos ??= new Elementos();
-                scene.Elementos.ScriptsEventos = scriptsEventos;
+                scene.Elementos.EventScripts = scriptsEventos;
                 Debug.Log($"Se han generado {scriptsEventos.Count} scripts de eventos para la escena {scene.Id}.");
             }
             else

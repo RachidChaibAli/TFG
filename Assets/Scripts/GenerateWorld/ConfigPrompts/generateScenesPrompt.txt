@@ -11,4 +11,16 @@ You should try, as much as possible given the limitation on the number of scenes
 
 Return the answer as a JSON with a list of scenes only, nothing else.
 
+The JSON must be a list of scenes with these atributes: id, title, description.
+
+Example of structure:
+[
+    {
+        Id: scene_1,
+        Title: ...,
+        Description:...
+    }.
+    ....
+]
+
 The base prompt is:

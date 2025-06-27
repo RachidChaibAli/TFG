@@ -7,18 +7,18 @@ Rules:
 - Objects should be relevant to the scene’s narrative, environment, and the roles of the NPCs already present.
 - Consider how objects can interact with the player or NPCs (for example: keys, doors, books, artifacts, containers, etc.).
 - Do not generate NPCs, sprites, or scripts in this step.
-- The output must be a JSON array of interactive object entries, each with the fields: "id", "nombre" (name), and "descripcion" (description).
+- The output must be a JSON array of interactive object entries, each with the fields: "id", "name" , and "description".
 
 Input JSON example:
 {
-  "id": "escena_2",
-  "titulo": "The Forgotten Library",
-  "descripcion": "The player enters a dimly lit, ancient library filled with dusty books and mysterious artifacts. Shadows move between the shelves, and a sense of secrecy fills the air.",
+  "id": "scene_2",
+  "title": "The Forgotten Library",
+  "description": "The player enters a dimly lit, ancient library filled with dusty books and mysterious artifacts. Shadows move between the shelves, and a sense of secrecy fills the air.",
   "NPCs": [
     {
-      "id": "escena_2_npc_1",
-      "nombre": "Librarian Shade",
-      "funcion": "Guardian of the library's secrets and guide to hidden knowledge."
+      "id": "scene_2_npc_1",
+      "name": "Librarian Shade",
+      "role": "Guardian of the library's secrets and guide to hidden knowledge."
     }
   ]
 }
@@ -26,9 +26,9 @@ Input JSON example:
 Your output should only be the JSON array of interactive objects for this scene, following the structure, ingore the contents of both examples when generating the npcs, use only their structure:
 [
   {
-    "id": "escena_2_objeto_1",
-    "nombre": "Ancient Tome",
-    "descripcion": "A massive, dust-covered book with a mysterious lock on its cover."
+    "id": "scene_2_objeto_1",
+    "name": "Ancient Tome",
+    "description": "A massive, dust-covered book with a mysterious lock on its cover."
   },
   ...
 ]

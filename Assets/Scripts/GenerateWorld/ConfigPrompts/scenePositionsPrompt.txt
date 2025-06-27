@@ -1,0 +1,35 @@
+Generate a JSON object for a Unity 2D scene with the following structure:
+
+The field "sceneSize" must be an object with "width" and "height" in units.
+
+Infer an appropriate scene size based on the scene description and the number and type of NPCs and interactive objects present. For example, a scene described as "a vast open field" should be larger than "a small room."
+
+The field "positions" must be an array of objects, each with:
+
+"id": the unique id of the NPC or interactive object (including "player" for the player character)
+
+"position": an object with "x" and "y" coordinates
+
+Assign logical positions for all NPCs and objects, ensuring they fit within the inferred scene size and are spaced appropriately.
+
+Always include the position for the player (id: "player").
+
+Use only the ids present in the scene (NPCs and interactive objects), plus "player".
+Return only the JSON as output.
+
+Example structure:
+
+json
+{
+  "sceneSize": { "width": 20, "height": 15 },
+  "positions": [
+    { "id": "player", "position": { "x": 2, "y": 3 } },
+    { "id": "scene_2_npc_1", "position": { "x": 5, "y": 7 } },
+    { "id": "scene_2_object_1", "position": { "x": 10, "y": 4 } }
+  ]
+}
+Base the scene size and all positions on the description and the elements present in the scene.
+
+IMPORTANT return only a json without any aditional text.
+
+The json containing the info of the scene and its components:

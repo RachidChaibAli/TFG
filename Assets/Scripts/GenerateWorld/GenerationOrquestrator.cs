@@ -22,7 +22,10 @@ public class GenerationOrquestrator
     public string UserPrompt { get; private set; }
     public string BasePrompt { get; private set; }
     public string InitialPrompt { get; private set; }
-    public string GenerateScenesPrompt { get; private set; }    
+    public string GenerateScenesPrompt { get; private set; }   
+    public string StableDiffusionPrompt { get; private set; }
+    public string NegativeStableDiffusionPrompt { get; private set; }
+    public string ScenePositionPrompt { get; private set; }
     public string WorldPath => Path.Combine(Application.persistentDataPath, WorldName);
     public string SpritesPath => Path.Combine(WorldPath, "sprites");
     public List<Escena> Scenes { get; private set; } = new List<Escena>();
@@ -44,8 +47,13 @@ public class GenerationOrquestrator
 
         InitialPrompt = File.ReadAllText(Path.Combine(configPath, "initialPrompt.txt"));
         GenerateScenesPrompt = File.ReadAllText(Path.Combine(configPath, "generateScenesPrompt.txt"));
+        StableDiffusionPrompt = File.ReadAllText(Path.Combine(configPath, "stableDiffusionPrompt.txt"));
+        NegativeStableDiffusionPrompt = File.ReadAllText(Path.Combine(configPath, "negativeStableDiffusionPrompt.txt"));
+        ScenePositionPrompt = File.ReadAllText(Path.Combine(configPath, "scenePositionsPrompt.txt"));
 
         geminiClient = new GeminiClient();
+
+        stableDiffusionClient = new StableDiffusionClient();
 
         if (!Directory.Exists(WorldPath))
         {
@@ -67,12 +75,64 @@ public class GenerationOrquestrator
             Debug.LogError("El nombre del mundo y el prompt no pueden estar vacíos.");
             return;
         }
-        await ParsePrompt();
+
+        //await ParsePrompt();
+        BasePrompt = File.ReadAllText(Path.Combine(WorldPath, "basePrompt.txt"));
 
         generateScenes = new GenerateScenes(BasePrompt, geminiClient, WorldPath);
 
-        await generateScenes.GenerateAllScenes();
+        //Scenes = await generateScenes.GenerateAllScenes();
+        
+        Scenes.Clear();
+        int i = 1;
+        while (true)
+        {
+            string sceneFolder = Path.Combine(WorldPath, $"scene_{i}");
+            string sceneInfoPath = Path.Combine(sceneFolder, "sceneInfo.json");
+            if (!File.Exists(sceneInfoPath))
+                break;
 
+            try
+            {
+                string json = File.ReadAllText(sceneInfoPath);
+                var escena = JsonConvert.DeserializeObject<Escena>(json);
+                if (escena != null)
+                {
+                    Scenes.Add(escena);
+                    Debug.Log($"Escena cargada: {escena.Id} ({sceneInfoPath})");
+                }
+                else
+                {
+                    Debug.LogWarning($"No se pudo deserializar la escena en: {sceneInfoPath}");
+                }
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"Error al cargar la escena {sceneInfoPath}: {ex.Message}");
+            }
+            i++;
+        }
+        
+        var tasks = new List<Task>();
+
+        await GenerateSpritesAsync();
+        foreach ( var scene in Scenes)
+        {
+            var scenePath = Path.Combine(WorldPath, scene.Id);
+            if (!Directory.Exists(scenePath))
+            {
+                Directory.CreateDirectory(scenePath);
+                Debug.Log($"Carpeta de escena creada en: {scenePath}");
+            }
+            File.WriteAllText(Path.Combine(scenePath, "sceneInfo.json"), JsonConvert.SerializeObject(scene, Formatting.Indented));
+        }
+        return;
+        foreach (var scene in Scenes)
+        {
+            tasks.Add( ScenePosition(scene));
+
+        }
+        await Task.WhenAll(tasks);
     }
 
     private async Task ParsePrompt()
@@ -84,17 +144,76 @@ public class GenerationOrquestrator
         Debug.Log($"Generación completada. Contenido guardado en: {Path.Combine(WorldPath, "basePrompt.txt")}");
     }
 
-    public async void PruebaImagenGenerada()
+    public async Task GenerateSpritesAsync()
     {
-        string imagePath = Path.Combine(WorldPath, "sprites/generatedImage.png");
+        
+        foreach ( var scene in Scenes)
+        {
+            var scenePath = Path.Combine(SpritesPath, scene.Id);
+            if (!Directory.Exists(scenePath))
+            {
+                Directory.CreateDirectory(scenePath);
+                Debug.Log($"Carpeta de escena creada en: {scenePath}");
+            }
 
-        // Crear un GameObject temporal para usar StableDiffusionClient
-        var tempObj = new GameObject("StableDiffusionClientTemp");
-        var tempClient = tempObj.AddComponent<StableDiffusionClient>();
+            foreach (var sprite in scene.Elementos.MainSprites)
+            {
+                var spritePath = Path.Combine(scenePath, $"{sprite.Id}.png");
+                if (!File.Exists(spritePath))
+                {
+                    Debug.Log($"Generando sprite: {sprite.Name} en {spritePath}");
+                    var image = await stableDiffusionClient.GenerateImageAndSaveAsync(sprite.Description, spritePath, NegativeStableDiffusionPrompt);
+                    if (image)
+                    {
+                        Debug.Log($"Sprite generado y guardado: {sprite.Name}");
+                        sprite.Ruta = spritePath;
+                    }
+                    else
+                    {
+                        Debug.LogError($"Error al generar el sprite: {sprite.Name}");
+                    }
+                }
+                else
+                {
+                    Debug.Log($"Sprite ya existe: {sprite.Name} en {spritePath}");
+                    sprite.Ruta = spritePath;
+                }
+                
+            }
 
-        await tempClient.GenerateImageAndSaveAsync("Dame un png sin fondo de un dragon occidental en estilo pixel art", imagePath);
-        Debug.Log($"Imagen generada y guardada en: {imagePath}");
-
-        Object.DestroyImmediate(tempObj);
+            
+        }
     }
+
+    private async Task ScenePosition(Escena scene)
+    {
+        var scenePath = Path.Combine(WorldPath, scene.Id);
+
+        var response = await geminiClient.GenerateContentAsync(ScenePositionPrompt + "\n" + JsonConvert.SerializeObject(scene, Formatting.Indented));
+        string rawText = response.Trim();
+        if (rawText.StartsWith("```json"))
+            rawText = rawText[7..].TrimStart();
+        if (rawText.EndsWith("```"))
+            rawText = rawText[..^3].TrimEnd();
+
+        try
+            {
+            ScenePosition scenePosition = JsonConvert.DeserializeObject<ScenePosition>(rawText);
+            if (scenePosition != null && scenePosition.positions != null)
+            {
+                Debug.Log($"Posición de la escena {scene.Id} deserializada correctamente.");
+                Debug.Log($"POSICIONES: {JsonConvert.SerializeObject(scenePosition.positions, Formatting.Indented)}");
+                File.WriteAllText(Path.Combine(scenePath, "scenePosition.json"), JsonConvert.SerializeObject(scenePosition, Formatting.Indented));
+            }
+            else
+            {
+                Debug.LogWarning("No se pudo deserializar la posición de la escena correctamente.");
+            }
+        }
+        catch (JsonException ex)
+        {
+            Debug.LogError($"Error al deserializar la posición de la escena: {ex.Message}");
+        }
+    }
+
 }
