@@ -22,10 +22,10 @@ public class GenerationOrquestrator
     public string UserPrompt { get; private set; }
     public string BasePrompt { get; private set; }
     public string InitialPrompt { get; private set; }
-    public string GenerateScenesPrompt { get; private set; }   
     public string StableDiffusionPrompt { get; private set; }
     public string NegativeStableDiffusionPrompt { get; private set; }
     public string ScenePositionPrompt { get; private set; }
+    public string GenerateDialogPrompt { get; private set; }
     public string WorldPath => Path.Combine(Application.persistentDataPath, WorldName);
     public string SpritesPath => Path.Combine(WorldPath, "sprites");
     public List<Escena> Scenes { get; private set; } = new List<Escena>();
@@ -45,11 +45,13 @@ public class GenerationOrquestrator
 
         string configPath = Path.Combine(Application.dataPath, "Scripts/GenerateWorld/ConfigPrompts");
 
+        
+
         InitialPrompt = File.ReadAllText(Path.Combine(configPath, "initialPrompt.txt"));
-        GenerateScenesPrompt = File.ReadAllText(Path.Combine(configPath, "generateScenesPrompt.txt"));
-        StableDiffusionPrompt = File.ReadAllText(Path.Combine(configPath, "stableDiffusionPrompt.txt"));
-        NegativeStableDiffusionPrompt = File.ReadAllText(Path.Combine(configPath, "negativeStableDiffusionPrompt.txt"));
+        StableDiffusionPrompt = File.ReadAllText(Path.Combine(configPath, "Sprite/stableDiffusionPrompt.txt"));
+        NegativeStableDiffusionPrompt = File.ReadAllText(Path.Combine(configPath, "Sprite/negativeStableDiffusionPrompt.txt"));
         ScenePositionPrompt = File.ReadAllText(Path.Combine(configPath, "scenePositionsPrompt.txt"));
+        GenerateDialogPrompt = File.ReadAllText(Path.Combine(configPath, "generateDialogPrompt.txt"));
 
         geminiClient = new GeminiClient();
 
@@ -79,7 +81,7 @@ public class GenerationOrquestrator
         //await ParsePrompt();
         BasePrompt = File.ReadAllText(Path.Combine(WorldPath, "basePrompt.txt"));
 
-        generateScenes = new GenerateScenes(BasePrompt, geminiClient, WorldPath);
+        //generateScenes = new GenerateScenes(BasePrompt, geminiClient, WorldPath);
 
         //Scenes = await generateScenes.GenerateAllScenes();
         
@@ -113,9 +115,10 @@ public class GenerationOrquestrator
             i++;
         }
         
-        var tasks = new List<Task>();
-
+        
+        /*
         await GenerateSpritesAsync();
+
         foreach ( var scene in Scenes)
         {
             var scenePath = Path.Combine(WorldPath, scene.Id);
@@ -127,12 +130,25 @@ public class GenerationOrquestrator
             File.WriteAllText(Path.Combine(scenePath, "sceneInfo.json"), JsonConvert.SerializeObject(scene, Formatting.Indented));
         }
         return;
+
+        var tasks = new List<Task>();
+
         foreach (var scene in Scenes)
         {
             tasks.Add( ScenePosition(scene));
 
         }
         await Task.WhenAll(tasks);
+        */
+
+        var tasks = new List<Task>();
+
+        foreach ( var scene in Scenes)
+        {
+            tasks.Add(GenerateDialog(scene));
+        }
+        await Task.WhenAll(tasks);
+
     }
 
     private async Task ParsePrompt()
@@ -213,6 +229,34 @@ public class GenerationOrquestrator
         catch (JsonException ex)
         {
             Debug.LogError($"Error al deserializar la posición de la escena: {ex.Message}");
+        }
+    }
+
+    private async Task GenerateDialog(Escena scene)
+    {
+        var allScenes = File.ReadAllText(Path.Combine(WorldPath, "generateScenes.json"));
+        foreach ( var npc in scene.Elementos.NPCs)
+        {
+            if (npc.Id == "player")
+                continue; // No generar diálogo para el jugador
+            var npcPath = Path.Combine(WorldPath, scene.Id, $"{npc.Id}_dialog.json");
+            if (!File.Exists(npcPath))
+            {
+                Debug.Log($"Generando diálogo para NPC: {npc.Name} ({npc.Id}) en {npcPath}");
+                string mensaje = "\nThe JSON containing the complete information of the scene the ncp is in:\n" + JsonConvert.SerializeObject(scene) + "\nThe npc you must generate the dialog for:\n" + JsonConvert.SerializeObject(npc);
+                var response = await geminiClient.GenerateContentAsync( GenerateDialogPrompt + mensaje);
+                string rawText = response.Trim();
+                if (rawText.StartsWith("```json"))
+                    rawText = rawText[7..].TrimStart();
+                if (rawText.EndsWith("```"))
+                    rawText = rawText[..^3].TrimEnd();
+                File.WriteAllText(npcPath, rawText);
+                Debug.Log($"Diálogo generado y guardado para NPC: {npc.Name} ({npc.Id}) en {npcPath}");
+            }
+            else
+            {
+                Debug.Log($"Diálogo ya existe para NPC: {npc.Name} ({npc.Id}) en {npcPath}");
+            }
         }
     }
 

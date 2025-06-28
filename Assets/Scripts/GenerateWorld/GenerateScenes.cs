@@ -35,7 +35,7 @@ public class GenerateScenes
 
         this.geminiClient = geminiClient;
 
-        var promptsPath = Path.Combine(Application.dataPath, "Scripts/GenerateWorld/ConfigPrompts");
+        var promptsPath = Path.Combine(Application.dataPath, "Scripts/GenerateWorld/ConfigPrompts/Scene");
 
         GenerateScenesPrompt = File.ReadAllText(Path.Combine(promptsPath, "generateScenesPrompt.txt"));
 
