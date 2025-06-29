@@ -44,47 +44,6 @@ public class StableDiffusionClient
         }
     }
 
-    public IEnumerator GenerateImage(string prompt, System.Action<Texture2D> onComplete)
-    {
-        string url = $"{apiUrl}{engineId}/text-to-image";
-        SDRequestBody requestBody = new()
-        {
-            text_prompts = new List<TextPrompt> { new() { text = prompt, weight = 1.0f } },
-            height = 512,
-            width = 512,
-        };
-
-        string jsonData = JsonUtility.ToJson(requestBody);
-        UnityWebRequest request = new(url, "POST");
-        byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonData);
-        request.uploadHandler = new UploadHandlerRaw(bodyRaw);
-        request.downloadHandler = new DownloadHandlerBuffer();
-        request.SetRequestHeader("Content-Type", "application/json");
-        request.SetRequestHeader("Accept", "image/png");
-        request.SetRequestHeader("Authorization", $"Bearer {apiKey}");
-
-        yield return request.SendWebRequest();
-
-        if (request.result == UnityWebRequest.Result.Success)
-        {
-            byte[] data = request.downloadHandler.data;
-            Debug.Log($"Bytes recibidos: {data.Length}");
-            // Mostrar los primeros 8 bytes en hexadecimal
-            string hexHeader = System.BitConverter.ToString(data, 0, Mathf.Min(8, data.Length));
-            Debug.Log($"Cabecera PNG: {hexHeader}");
-
-            Texture2D tex = new(2, 2);
-            bool loaded = tex.LoadImage(data);
-            Debug.Log($"¿LoadImage tuvo éxito?: {loaded}");
-            onComplete?.Invoke(loaded ? tex : null);
-        }
-        else
-        {
-            Debug.LogError($"SD API Error: {request.error}");
-            onComplete?.Invoke(null);
-        }
-    }
-
     public async Task<bool> GenerateImageAndSaveAsync(string prompt, string outputPath, string negativePrompt = null)
     {
         string url = $"{apiUrl}{engineId}/text-to-image";

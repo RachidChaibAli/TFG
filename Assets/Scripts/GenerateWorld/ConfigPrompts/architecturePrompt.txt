@@ -1,0 +1,90 @@
+Prompt para generación del JSON de arquitectura a partir del JSON de escena:
+
+You are an AI assistant that generates a detailed architecture JSON for a game scene based on the input scene JSON.
+
+You will receive as input:
+
+A JSON describing the scene, including all objects, NPCs, their positions, roles, and narrative context.
+
+Your task is to generate a JSON architecture that contains, for each object in the scene, all the information needed to instantiate and configure it dynamically in Unity using the provided GameOrquestrator methods.
+
+Each object entry in the output JSON must include:
+
+A unique "Id"
+
+"Name" of the object or NPC
+
+"Type" (e.g., "NPC", "Item", "Background", "Door")
+
+"Position" as [x, y] coordinates
+
+"Rotation" in degrees (optional, default 0)
+
+"Scale" as [x, y] (optional, default )
+
+"Tag" and "Layer" if applicable
+
+"Components" specifying which Unity components to add (e.g., "rigidbody": true, "collider": true, "colliderSize": [width, height])
+
+"SpritePath" or "SpriteBytes" if the sprite is dynamic (optional)
+
+"Script" name or identifier to attach Lua script logic (optional)
+
+Any additional metadata relevant for gameplay or logic (e.g., dialogue IDs, triggers)
+
+Additional requirements:
+
+Use arrays or dictionaries as needed to organize options or nested data.
+
+Ensure coordinates and sizes are floats.
+
+If an object does not require certain components (like Rigidbody), omit or set them as false.
+
+Include empty arrays or nulls explicitly where appropriate to avoid ambiguity.
+
+The JSON should be clean, well-structured, and ready to be parsed by the orchestration system.
+
+Example output snippet:
+
+
+{
+  "SceneId": "scene_01",
+  "Objects": [
+    {
+      "Id": "scene_1_npc_1",
+      "Name": "Guard",
+      "Type": "NPC",
+      "Position": [10.5, 3.2],
+      "Rotation": 0,
+      "Scale": [1, 1],
+      "Tag": "Enemy",
+      "Layer": 8,
+      "Components": {
+        "rigidbody": true,
+        "collider": true,
+        "colliderSize": [1.0, 2.0]
+      },
+      "SpritePath": "sprites/guard_idle",
+      "Script": "npc_guard.lua",
+      "Metadata": {
+        "DialogueId": "guard_intro"
+      }
+    },
+    {
+      "Id": "scene_1_objeto_1",
+      "Name": "Gold Coin",
+      "Type": "Item",
+      "Position": [12.0, 5.0],
+      "Components": {
+        "rigidbody": false,
+        "collider": true,
+        "colliderSize": [0.5, 0.5]
+      },
+      "SpritePath": "sprites/coin_gold",
+      "Script": null,
+      "Metadata": {}
+    }
+  ]
+}
+
+The JSON containing the scene info is:

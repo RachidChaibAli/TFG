@@ -26,6 +26,8 @@ public class GenerationOrquestrator
     public string NegativeStableDiffusionPrompt { get; private set; }
     public string ScenePositionPrompt { get; private set; }
     public string GenerateDialogPrompt { get; private set; }
+    public string ArchitecturePrompt { get; private set; }
+    public string CommunicationPrompt { get; private set; }
     public string WorldPath => Path.Combine(Application.persistentDataPath, WorldName);
     public string SpritesPath => Path.Combine(WorldPath, "sprites");
     public List<Escena> Scenes { get; private set; } = new List<Escena>();
@@ -35,6 +37,7 @@ public class GenerationOrquestrator
     private StableDiffusionClient stableDiffusionClient;
 
     private GenerateScenes generateScenes;
+    private PixianAIClient pixianAIClient;
 
     private GenerationOrquestrator() { }
 
@@ -52,6 +55,8 @@ public class GenerationOrquestrator
         NegativeStableDiffusionPrompt = File.ReadAllText(Path.Combine(configPath, "Sprite/negativeStableDiffusionPrompt.txt"));
         ScenePositionPrompt = File.ReadAllText(Path.Combine(configPath, "scenePositionsPrompt.txt"));
         GenerateDialogPrompt = File.ReadAllText(Path.Combine(configPath, "generateDialogPrompt.txt"));
+        ArchitecturePrompt = File.ReadAllText(Path.Combine(configPath, "architecturePrompt.txt"));
+        CommunicationPrompt = File.ReadAllText(Path.Combine(configPath, "communicationPrompt.txt"));
 
         geminiClient = new GeminiClient();
 
@@ -142,12 +147,48 @@ public class GenerationOrquestrator
         */
 
         var tasks = new List<Task>();
-
+        /*
         foreach ( var scene in Scenes)
         {
             tasks.Add(GenerateDialog(scene));
         }
         await Task.WhenAll(tasks);
+        
+
+        foreach (var scene in Scenes)
+        {
+            if (!Directory.Exists(Path.Combine(SpritesPath, scene.Id, "png")))
+            {
+                Directory.CreateDirectory(Path.Combine(SpritesPath, scene.Id, "png"));
+                Debug.Log($"Carpeta de escena creada en: {Path.Combine(SpritesPath, scene.Id, "png")}");
+            }
+        }
+        */
+        pixianAIClient = new PixianAIClient();
+
+        tasks.Clear();
+        foreach (var scene in Scenes)
+        {
+            tasks.Add(RemoveBackgroundAsync(scene));
+        }
+        await Task.WhenAll(tasks);
+        tasks.Clear();
+
+        WriteScencesToFile();
+
+        foreach (var scene in Scenes)
+        {
+            tasks.Add(GenerateArquitecture(scene));
+        }
+        await Task.WhenAll(tasks);
+
+        tasks.Clear();
+        foreach (var scene in Scenes)
+        {
+            tasks.Add(GenerateCommunication(scene));
+        }
+        await Task.WhenAll(tasks);
+        Debug.Log("Generación de mundo completada.");
 
     }
 
@@ -257,6 +298,129 @@ public class GenerationOrquestrator
             {
                 Debug.Log($"Diálogo ya existe para NPC: {npc.Name} ({npc.Id}) en {npcPath}");
             }
+        }
+    }
+
+    private async Task RemoveBackgroundAsync(Escena scene)
+    {
+        foreach (var sprite in scene.Elementos.MainSprites)
+        {
+            if (string.IsNullOrEmpty(sprite.Ruta) || !File.Exists(sprite.Ruta))
+            {
+                Debug.LogWarning($"Ruta del sprite no válida o no existe: {sprite.Ruta}");
+                continue;
+            }
+            try
+            {
+                var pngPath = Path.Combine(SpritesPath, $"{scene.Id}/png/{sprite.Id}.png");
+                if (File.Exists(pngPath))
+                {
+                    sprite.Ruta = pngPath; // Actualizar la ruta del sprite
+                }
+                else
+                {
+                    byte[] imageBytes = File.ReadAllBytes(sprite.Ruta);
+                    byte[] resultBytes;
+                    if (sprite.AssociatedObject != null)
+                    {
+                        resultBytes = await pixianAIClient.RemoveBackgroundAsync(imageBytes, true);
+                    }
+                    else
+                    {
+                        resultBytes = imageBytes; // Si no hay objeto asociado, no se elimina el fondo
+                    }
+                    
+                    
+                    if (resultBytes != null && resultBytes.Length > 0)
+                    {
+                        File.WriteAllBytes(sprite.Ruta, resultBytes);
+                        Debug.Log($"Fondo eliminado para el sprite: {sprite.Name} ({sprite.Id})");
+                        File.WriteAllBytes(pngPath, resultBytes);
+                        sprite.Ruta = pngPath;
+                    }
+                    else
+                    {
+                        Debug.LogError($"No se pudo eliminar el fondo para el sprite: {sprite.Name} ({sprite.Id})");
+                    }
+                }
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"Error al eliminar el fondo del sprite {sprite.Name} ({sprite.Id}): {ex.Message}");
+            }
+        }
+    }
+
+    private async Task GenerateArquitecture(Escena scene)
+    {
+        var scenePath = Path.Combine(WorldPath, scene.Id);
+        var response = await geminiClient.GenerateContentAsync(ArchitecturePrompt + "\n" + JsonConvert.SerializeObject(scene, Formatting.Indented));
+        Debug.Log($"Response: {response}");
+        string rawText = response.Trim();
+        if (rawText.StartsWith("```json"))
+            rawText = rawText[7..].TrimStart();
+        if (rawText.EndsWith("```"))
+            rawText = rawText[..^3].TrimEnd();
+        try
+        {
+            if (!string.IsNullOrEmpty(rawText))
+            {
+                File.WriteAllText(Path.Combine(scenePath, $"architecture_{scene.Id}.json"), rawText);
+                Debug.Log($"Arquitectura de la escena {scene.Id} generada y guardada correctamente.");
+            }
+        }
+        catch (JsonException ex)
+        {
+            Debug.LogError($"Error al deserializar la arquitectura de la escena: {ex.Message}");
+        }
+    }
+
+    private async Task GenerateCommunication(Escena scene)
+    {
+        var scenePath = Path.Combine(WorldPath, scene.Id);
+        var arquitecturePath = Path.Combine(scenePath, $"architecture_{scene.Id}.json");
+        string response;
+        if (!File.Exists(arquitecturePath))
+        {
+            Debug.LogWarning($"No se encontró el archivo de arquitectura para la escena {scene.Id}. Generando comunicación sin arquitectura.");
+            response = await geminiClient.GenerateContentAsync(CommunicationPrompt + "\n" + JsonConvert.SerializeObject(scene, Formatting.Indented));
+        }
+        else
+        {
+            response = await geminiClient.GenerateContentAsync(CommunicationPrompt + "\n" + JsonConvert.SerializeObject(scene, Formatting.Indented) + "\n" + File.ReadAllText(arquitecturePath));
+        }
+
+        Debug.Log($"Response: {response}");
+        string rawText = response.Trim();
+        if (rawText.StartsWith("```json"))
+            rawText = rawText[7..].TrimStart();
+        if (rawText.EndsWith("```"))
+            rawText = rawText[..^3].TrimEnd();
+        try
+        {
+            if (!string.IsNullOrEmpty(rawText))
+            {
+                File.WriteAllText(Path.Combine(scenePath, $"communication_{scene.Id}.json"), rawText);
+                Debug.Log($"Comunicación de la escena {scene.Id} generada y guardada correctamente.");
+            }
+        }
+        catch (JsonException ex)
+        {
+            Debug.LogError($"Error al deserializar la comunicación de la escena: {ex.Message}");
+        }
+    }
+
+    private void WriteScencesToFile()
+    {
+        foreach (var scene in Scenes)
+        {
+            var scenePath = Path.Combine(WorldPath, scene.Id);
+            if (!Directory.Exists(scenePath))
+            {
+                Directory.CreateDirectory(scenePath);
+                Debug.Log($"Carpeta de escena creada en: {scenePath}");
+            }
+            File.WriteAllText(Path.Combine(scenePath, "sceneInfo.json"), JsonConvert.SerializeObject(scene, Formatting.Indented));
         }
     }
 
