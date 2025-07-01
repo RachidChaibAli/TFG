@@ -9,7 +9,7 @@ public class GeminiClient
     public GeminiClient()
     {
         googleAi = new GoogleAi();
-        generativeModel = googleAi.CreateGenerativeModel("gemini-2.0-flash-lite");
+        generativeModel = googleAi.CreateGenerativeModel("gemini-2.5-flash");
     }
 
     public async Task<string> GenerateContentAsync(string prompt)

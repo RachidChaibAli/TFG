@@ -2,6 +2,7 @@ using GenerativeAI;
 using Newtonsoft.Json;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
 using static SplitScenesClasses;
@@ -26,10 +27,13 @@ public class GenerationOrquestrator
     public string NegativeStableDiffusionPrompt { get; private set; }
     public string ScenePositionPrompt { get; private set; }
     public string GenerateDialogPrompt { get; private set; }
+    public string ArquitectureDescriptionPrompt { get; private set; }
     public string ArchitecturePrompt { get; private set; }
     public string CommunicationPrompt { get; private set; }
+    public string ScriptFinalPrompt { get; private set; }
     public string WorldPath => Path.Combine(Application.persistentDataPath, WorldName);
     public string SpritesPath => Path.Combine(WorldPath, "sprites");
+    public string ScriptsPath => Path.Combine(WorldPath, "scripts");
     public List<Escena> Scenes { get; private set; } = new List<Escena>();
 
     private GeminiClient geminiClient;
@@ -55,8 +59,10 @@ public class GenerationOrquestrator
         NegativeStableDiffusionPrompt = File.ReadAllText(Path.Combine(configPath, "Sprite/negativeStableDiffusionPrompt.txt"));
         ScenePositionPrompt = File.ReadAllText(Path.Combine(configPath, "scenePositionsPrompt.txt"));
         GenerateDialogPrompt = File.ReadAllText(Path.Combine(configPath, "generateDialogPrompt.txt"));
+        ArquitectureDescriptionPrompt = File.ReadAllText(Path.Combine(configPath, "arquitectureDescriptionPrompt.txt"));
         ArchitecturePrompt = File.ReadAllText(Path.Combine(configPath, "architecturePrompt.txt"));
         CommunicationPrompt = File.ReadAllText(Path.Combine(configPath, "communicationPrompt.txt"));
+        ScriptFinalPrompt = File.ReadAllText(Path.Combine(configPath, "scriptFinalPrompt.txt"));
 
         geminiClient = new GeminiClient();
 
@@ -72,6 +78,11 @@ public class GenerationOrquestrator
         {
             Directory.CreateDirectory(SpritesPath);
             Debug.Log($"Carpeta de sprites creada en: {SpritesPath}");
+        }
+        if (!Directory.Exists(ScriptsPath))
+        {
+            Directory.CreateDirectory(ScriptsPath);
+            Debug.Log($"Carpeta de scripts creada en: {ScriptsPath}");
         }
     }
 
@@ -163,7 +174,7 @@ public class GenerationOrquestrator
                 Debug.Log($"Carpeta de escena creada en: {Path.Combine(SpritesPath, scene.Id, "png")}");
             }
         }
-        */
+        
         pixianAIClient = new PixianAIClient();
 
         tasks.Clear();
@@ -173,23 +184,54 @@ public class GenerationOrquestrator
         }
         await Task.WhenAll(tasks);
         tasks.Clear();
+        
 
+        
         WriteScencesToFile();
+        
 
         foreach (var scene in Scenes)
         {
-            tasks.Add(GenerateArquitecture(scene));
+            tasks.Add(GenerateArquitectureDescription(scene));
         }
         await Task.WhenAll(tasks);
 
         tasks.Clear();
         foreach (var scene in Scenes)
         {
+            tasks.Add(GenerateArquitecture(scene));
+        }
+        await Task.WhenAll(tasks);
+        
+        tasks.Clear();
+        foreach (var scene in Scenes)
+        {
             tasks.Add(GenerateCommunication(scene));
         }
         await Task.WhenAll(tasks);
-        Debug.Log("Generación de mundo completada.");
+        
 
+
+
+        foreach (var scene in Scenes)
+        {
+            var sceneScriptPath = Path.Combine(ScriptsPath, scene.Id);
+            if (!Directory.Exists(sceneScriptPath))
+            {
+                Directory.CreateDirectory(sceneScriptPath);
+                Debug.Log($"Carpeta de escena creada en: {sceneScriptPath}");
+            }
+        }
+
+        tasks.Clear();
+        foreach (var scene in Scenes)
+        {
+            tasks.Add(GenerateScript(scene));
+        }
+        await Task.WhenAll(tasks);
+        Debug.Log("Generación de scripts completada.");
+        */
+        GameOrquestrator.Instance.InstantiateSceneObjects(Scenes.First().Id);
     }
 
     private async Task ParsePrompt()
@@ -239,37 +281,6 @@ public class GenerationOrquestrator
             }
 
             
-        }
-    }
-
-    private async Task ScenePosition(Escena scene)
-    {
-        var scenePath = Path.Combine(WorldPath, scene.Id);
-
-        var response = await geminiClient.GenerateContentAsync(ScenePositionPrompt + "\n" + JsonConvert.SerializeObject(scene, Formatting.Indented));
-        string rawText = response.Trim();
-        if (rawText.StartsWith("```json"))
-            rawText = rawText[7..].TrimStart();
-        if (rawText.EndsWith("```"))
-            rawText = rawText[..^3].TrimEnd();
-
-        try
-            {
-            ScenePosition scenePosition = JsonConvert.DeserializeObject<ScenePosition>(rawText);
-            if (scenePosition != null && scenePosition.positions != null)
-            {
-                Debug.Log($"Posición de la escena {scene.Id} deserializada correctamente.");
-                Debug.Log($"POSICIONES: {JsonConvert.SerializeObject(scenePosition.positions, Formatting.Indented)}");
-                File.WriteAllText(Path.Combine(scenePath, "scenePosition.json"), JsonConvert.SerializeObject(scenePosition, Formatting.Indented));
-            }
-            else
-            {
-                Debug.LogWarning("No se pudo deserializar la posición de la escena correctamente.");
-            }
-        }
-        catch (JsonException ex)
-        {
-            Debug.LogError($"Error al deserializar la posición de la escena: {ex.Message}");
         }
     }
 
@@ -351,10 +362,53 @@ public class GenerationOrquestrator
         }
     }
 
+    private async Task GenerateArquitectureDescription(Escena scene)
+    {
+        var scenePath = Path.Combine(WorldPath, scene.Id);
+        var arquitectureDescriptionPath = Path.Combine(scenePath, $"arquitectureDescription_{scene.Id}.txt");
+        if (File.Exists(arquitectureDescriptionPath))
+        {
+            Debug.Log($"Descripción de la arquitectura ya existe para la escena {scene.Id} en {arquitectureDescriptionPath}");
+            return; // No generar de nuevo si ya existe
+        }
+        var response = await geminiClient.GenerateContentAsync(ArquitectureDescriptionPrompt + "\n" + JsonConvert.SerializeObject(scene, Formatting.Indented));
+        Debug.Log($"Response: {response}");
+        string rawText = response.Trim();
+        
+        try
+        {
+            if (!string.IsNullOrEmpty(rawText))
+            {
+                File.WriteAllText(Path.Combine(scenePath, $"arquitectureDescription_{scene.Id}.txt"), rawText);
+                Debug.Log($"Descripción de la arquitectura de la escena {scene.Id} generada y guardada correctamente.");
+            }
+        }
+        catch (JsonException ex)
+        {
+            Debug.LogError($"Error al deserializar la descripción de la arquitectura de la escena: {ex.Message}");
+        }
+    }
+
     private async Task GenerateArquitecture(Escena scene)
     {
         var scenePath = Path.Combine(WorldPath, scene.Id);
-        var response = await geminiClient.GenerateContentAsync(ArchitecturePrompt + "\n" + JsonConvert.SerializeObject(scene, Formatting.Indented));
+        var arquitectureDescriptionPath = Path.Combine(scenePath, $"arquitectureDescription_{scene.Id}.txt");
+        string arquitectureDescription = string.Empty;
+        if (File.Exists(arquitectureDescriptionPath))
+        {
+            arquitectureDescription = File.ReadAllText(arquitectureDescriptionPath);
+        }
+        else
+        {
+            Debug.LogWarning($"No se encontró la descripción de la arquitectura para la escena {scene.Id}. Generando sin descripción.");
+        }
+        var arquitecturePath = Path.Combine(scenePath, $"architecture_{scene.Id}.json");
+        if (File.Exists(arquitecturePath))
+        {
+            Debug.Log($"Arquitectura ya existe para la escena {scene.Id} en {arquitecturePath}");
+            return; // No generar de nuevo si ya existe
+        }
+        var response = await geminiClient.GenerateContentAsync(ArchitecturePrompt + "\n" + JsonConvert.SerializeObject(scene, Formatting.Indented) + "\nArquitecture description:\n" + arquitectureDescription);
         Debug.Log($"Response: {response}");
         string rawText = response.Trim();
         if (rawText.StartsWith("```json"))
@@ -379,16 +433,20 @@ public class GenerationOrquestrator
     {
         var scenePath = Path.Combine(WorldPath, scene.Id);
         var arquitecturePath = Path.Combine(scenePath, $"architecture_{scene.Id}.json");
-        string response;
-        if (!File.Exists(arquitecturePath))
+        var arquitectureDescriptionPath = Path.Combine(scenePath, $"arquitectureDescription_{scene.Id}.txt");
+        if (!File.Exists(arquitecturePath) || !File.Exists(arquitectureDescriptionPath))
         {
-            Debug.LogWarning($"No se encontró el archivo de arquitectura para la escena {scene.Id}. Generando comunicación sin arquitectura.");
-            response = await geminiClient.GenerateContentAsync(CommunicationPrompt + "\n" + JsonConvert.SerializeObject(scene, Formatting.Indented));
+            Debug.LogWarning($"No se encontró la arquitectura o descripción de la arquitectura para la escena {scene.Id}. Generando sin estos datos.");
         }
-        else
+        string arquitectureContent = File.Exists(arquitecturePath) ? File.ReadAllText(arquitecturePath) : string.Empty;
+        string arquitectureDescriptionContent = File.Exists(arquitectureDescriptionPath) ? File.ReadAllText(arquitectureDescriptionPath) : string.Empty;
+        var generatedCommunicationPath = Path.Combine(scenePath, $"communication_{scene.Id}.json");
+        if (File.Exists(generatedCommunicationPath))
         {
-            response = await geminiClient.GenerateContentAsync(CommunicationPrompt + "\n" + JsonConvert.SerializeObject(scene, Formatting.Indented) + "\n" + File.ReadAllText(arquitecturePath));
+            Debug.Log($"Comunicación ya existe para la escena {scene.Id} en {generatedCommunicationPath}");
+            return; // No generar de nuevo si ya existe
         }
+        var response = await geminiClient.GenerateContentAsync(CommunicationPrompt + "\n" + JsonConvert.SerializeObject(scene, Formatting.Indented) + "\nArquitecture:\n" + arquitectureContent + "\nArquitecture description:\n" + arquitectureDescriptionContent);
 
         Debug.Log($"Response: {response}");
         string rawText = response.Trim();
@@ -421,6 +479,52 @@ public class GenerationOrquestrator
                 Debug.Log($"Carpeta de escena creada en: {scenePath}");
             }
             File.WriteAllText(Path.Combine(scenePath, "sceneInfo.json"), JsonConvert.SerializeObject(scene, Formatting.Indented));
+        }
+    }
+
+    private async Task GenerateScript(Escena scene)
+    {
+        var sceneScriptPath = Path.Combine(ScriptsPath, scene.Id);
+        var scenePath = Path.Combine(WorldPath, scene.Id);
+        string arquitecturePath = Path.Combine(scenePath, $"architecture_{scene.Id}.json");
+        string communicationPath = Path.Combine(scenePath, $"communication_{scene.Id}.json");
+        string arquitectureDescriptionPath = Path.Combine(scenePath, $"arquitectureDescription_{scene.Id}.txt");
+        string arquitectureContent = File.Exists(arquitecturePath) ? File.ReadAllText(arquitecturePath) : string.Empty;
+        string communicationContent = File.Exists(communicationPath) ? File.ReadAllText(communicationPath) : string.Empty;
+        string arquitectureDescriptionContent = File.Exists(arquitectureDescriptionPath) ? File.ReadAllText(arquitectureDescriptionPath) : string.Empty;
+        if (!Directory.Exists(sceneScriptPath))
+        {
+            Directory.CreateDirectory(sceneScriptPath);
+            Debug.Log($"Carpeta de escena creada en: {sceneScriptPath}");
+        }
+        foreach (var script in scene.Elementos.EventScripts)
+        {
+            var scriptPath = Path.Combine(sceneScriptPath, $"{script.Id}.lua");
+            if (!File.Exists(scriptPath))
+            {
+                Debug.Log($"Generando script: {script.Name} ({script.Id}) en {scriptPath}");
+                
+                string mensaje = "\nThe JSON containing the complete information of the scene:\n" + JsonConvert.SerializeObject(scene, Formatting.Indented) +
+                    "\nThe description of the architecture:\n" + arquitectureDescriptionContent +
+                    "\nThe architecture of the scene:\n" + JsonConvert.SerializeObject(arquitectureContent, Formatting.Indented) +
+                    "\nThe communication of the scene:\n" + JsonConvert.SerializeObject(communicationContent, Formatting.Indented) +
+                    "\nThe script you must generate:\n" + JsonConvert.SerializeObject(script, Formatting.Indented);
+
+
+                var response = await geminiClient.GenerateContentAsync(ScriptFinalPrompt + mensaje);
+                Debug.Log($"Response: {response}");
+                string rawText = response.Trim();
+                if (rawText.StartsWith("```lua"))
+                    rawText = rawText[7..].TrimStart();
+                if (rawText.EndsWith("```"))
+                    rawText = rawText[..^3].TrimEnd();
+                File.WriteAllText(scriptPath, rawText);
+                Debug.Log($"Script generado y guardado: {script.Name} ({script.Id}) en {scriptPath}");
+            }
+            else
+            {
+                Debug.Log($"Script ya existe: {script.Name} ({script.Id}) en {scriptPath}");
+            }
         }
     }
 

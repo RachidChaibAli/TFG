@@ -2750,6 +2750,7 @@ GameObject:
   - component: {fileID: 1335119720}
   - component: {fileID: 1335119719}
   - component: {fileID: 1335119723}
+  - component: {fileID: 1335119724}
   m_Layer: 5
   m_Name: Canvas
   m_TagString: Untagged
@@ -2863,6 +2864,21 @@ MonoBehaviour:
   prompt: {fileID: 1908823710}
   alertPanel: {fileID: 2127249873}
   alertText: {fileID: 889877600}
+--- !u!114 &1335119724
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1335119718}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d714f14194ef2624aacbe8cdc55e075a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  worldNameInput: {fileID: 1572470534}
+  WorldName: prueba
+  mainMenu: {fileID: 1133115399}
 --- !u!1 &1406162305
 GameObject:
   m_ObjectHideFlags: 0

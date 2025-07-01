@@ -10,70 +10,135 @@ A JSON describing the communication/events between objects (who triggers what, w
 
 The Id of the script to generate (corresponding to a specific object in the architecture).
 
-Your task is to generate a Lua script (MoonSharp compatible) that implements the behavior of the specified object, using the provided context, architecture, and communication definitions. The script must follow the pipeline where all object behavior is checked and managed inside the update function, and not rely on external event hooks unless absolutely required by the communication JSON. The script should:
+IMPORTANT:
 
-Always include an onUpdate(dt) function that is called every frame from Unity’s Update, where the main logic and event checks are performed.
+The only allowed mechanics are basic trigger-based interactions. The world is static: only the player moves. Objects and NPCs do not move, attack, or perform any autonomous actions. The only possible interaction is when the player enters a 2D collider (OnTriggerEnter2D) of an object or NPC, which can trigger a message or event (such as collecting an item or defeating an enemy as if it were a pickup). Do not invent or describe any other mechanics, combat systems, AI, or movement for NPCs or objects. No puzzles, no environmental changes, no dynamic behaviors. Only static objects and NPCs that react to the player's trigger.
 
-Include an onStart() function for initialization.
+C# functions exposed to Lua (these are the ONLY allowed interface to manipulate the game world):
 
-Respond to relevant events (e.g., OnPickup, OnInteract, OnDefeat, etc.) inside onUpdate or in dedicated functions as defined in the communication JSON, but only if required by the pipeline or JSON.
+CreateGameObject
 
-Manipulate the object's properties and interact with other objects as needed.
+AddRigidbody2D
 
-Use MoonSharp conventions for Unity integration (e.g., functions like onStart, onUpdate, onEvent, etc.).
+AddBoxCollider2D
 
-Include comments explaining the logic and key sections of the script.
+AddSpriteRenderer
 
-Only include the Lua code, no extra explanations or formatting.
+AddComponentByType
 
-Additional requirements:
+ConfigureFromLua
 
-If the object does not react to any events, generate a minimal script with basic structure and comments, including an empty onUpdate(dt) function.
+SetDynamicSprite (byte[] pngBytes)
 
-Use the object Id and event types to name functions and handlers clearly.
+SetDynamicSprite (string filePath)
 
-If the object triggers actions on other objects or the system, call the appropriate functions or send messages as needed.
+SetTag
 
-The script must be clean, well-structured, and ready to be loaded by MoonSharp in Unity.
+SetLayer
 
-Example input and output:
+SetActive
 
-Input:
+DestroyObject
 
-Scene JSON
+SetParent
 
-Architecture JSON
+SetPosition
 
-Communication JSON
+SetRotation
 
-ScriptId: "scene_1_script_2"
+SetScale
 
-Output (Lua):
+GetAxis
+
+Your task is to generate a Lua script that is:
+
+Fully functional, autonomous, and production-ready.
+
+For every event in the communication JSON where 'TargetId' matches this object's Id, implement a Lua function named after the 'method' field. Each function must have a real implementation (not a placeholder).
+
+In onStart(), initialize all variables defined in the Metadata field of the architecture JSON for this object.
+
+For collectibles, implement logic in OnTriggerEnter2D to add the item to the player's inventory and destroy the object, generating the corresponding message if needed.
+
+For NPCs, implement logic in OnTriggerEnter2D to send a StartDialogue message to the system.
+
+Do not generate comments or functions for events that do not correspond to this object.
+
+Do not include any placeholder comments or empty functions.
+
+Use only the C# functions listed above to interact with the game world.
+
+The script must be ready to use as-is.
+
+Function requirements:
+
+All scripts must always define both onUpdate(dt) and OnTriggerEnter2D(other) functions, even if their implementation is empty for that object.
+
+For the player, OnTriggerEnter2D(other) must be present but empty.
+
+For all other objects, onUpdate(dt) must be present but can be empty if not needed.
+
+This ensures interface consistency for all objects and prevents missing function errors in the orchestration system.
+
+Message handling:
+
+The OnTriggerEnter2D function (if present) is the main place to generate and return messages in the required JSON format.
+
+The onUpdate(dt) function can also generate and return messages, but only for special cases (such as attribute checks, timers, or internal logic not directly related to collisions).
+
+Both OnTriggerEnter2D and onUpdate(dt) must return either an empty JSON object "{}" or a JSON object with the format:
+
+json
+{
+  "messages": [
+    {
+      "origin": "SOURCE_ID",
+      "target": "TARGET_ID",
+      "method": "ACTION",
+      "content": { ... }
+    }
+  ]
+}
+Messages must be generated only for the events defined in the communication JSON and only if the object is the SourceId of the event.
+
+Special rules for the player object:
+
+The player script MUST implement full movement logic in onUpdate(dt) using GetAxis and the appropriate C# methods (such as SetPosition, SetRotation, SetScale, etc.).
+
+The player does NOT use OnTriggerEnter2D for gameplay, but the function must exist and return "{}".
+
+The player must implement all receiver methods from the communication JSON as Lua functions, with real logic (never placeholders).
+
+Example output (Lua):
 
 lua
--- Lua script for Elara (scene_1_script_2)
 function onStart()
-    -- Initialization logic here
+    health = 100
+    coins = 0
+    inventory = {}
+    speed = 4
 end
 
 function onUpdate(dt)
-    -- Check for events, triggers, or state changes every frame
-    -- Example: if an event should be triggered, handle it here
-    -- Example: if you receive a message, process it inside onUpdate
-    -- Example: check if conditions are met for an interaction, then act
-
-    -- This is where all behavior logic is managed, as per the pipeline
+    -- Player movement logic
+    local x = GetAxis("Horizontal")
+    local y = GetAxis("Vertical")
+    SetPosition(x * speed * dt, y * speed * dt)
+    return "{}"
 end
 
--- Add event handlers if required by the communication JSON, but call them from onUpdate
-function onEvent(event)
-    if event.type == "OnInteract" then
-        -- Custom logic for interaction
-    elseif event.type == "OnDefeat" then
-        -- Custom logic for defeat
-    end
+function OnTriggerEnter2D(other)
+    -- Empty for player, or implement logic for objects/NPCs
+    return "{}"
 end
 
--- Add more handlers as needed, but ensure all logic is managed from onUpdate
+function PickupItem(item_id)
+    inventory[#inventory + 1] = item_id
+end
 
-The json inputs and the id of the script are:
+function ApplyDamage(amount)
+    health = health - amount
+    if health <= 0 then DestroyObject() end
+end
+
+The inputs are:

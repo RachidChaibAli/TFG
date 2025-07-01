@@ -1,16 +1,16 @@
-Prompt para generación del JSON de arquitectura a partir del JSON de escena:
-
-You are an AI assistant that generates a detailed architecture JSON for a game scene based on the input scene JSON.
+You are an AI assistant that generates a detailed architecture JSON for a game scene based on the input provided.
 
 You will receive as input:
+- A comprehensive English description of the scene's architecture and gameplay systems (including all objects, NPCs, their positions, roles, relationships, intended behaviors, and gameplay mechanics),
+- A JSON describing the scene, including all objects, NPCs, their positions, roles, and narrative context.
 
-A JSON describing the scene, including all objects, NPCs, their positions, roles, and narrative context.
+IMPORTANT: The only allowed mechanics are basic trigger-based interactions. The world is static: only the player moves. Objects and NPCs do not move, attack, or perform any autonomous actions. The only possible interaction is when the player enters a 2D collider (OnTriggerEnter2D) of an object or NPC, which can trigger a message or event (such as collecting an item or defeating an enemy as if it were a pickup). Do not invent or describe any other mechanics, combat systems, AI, or movement for NPCs or objects. No puzzles, no environmental changes, no dynamic behaviors. Only static objects and NPCs that react to the player's trigger.
 
 Your task is to generate a JSON architecture that contains, for each object in the scene, all the information needed to instantiate and configure it dynamically in Unity using the provided GameOrquestrator methods.
 
 Each object entry in the output JSON must include:
 
-A unique "Id"
+The "Id" the object has in the scene json
 
 "Name" of the object or NPC
 
@@ -20,19 +20,25 @@ A unique "Id"
 
 "Rotation" in degrees (optional, default 0)
 
-"Scale" as [x, y] (optional, default )
+"Scale" as [x, y] (optional, default [1,1])
 
-"Tag" and "Layer" if applicable
+"Tag" in the player object must be "Player" otherwise "Untagged"
+
+"Layer" if applicable
 
 "Components" specifying which Unity components to add (e.g., "rigidbody": true, "collider": true, "colliderSize": [width, height])
 
-"SpritePath" or "SpriteBytes" if the sprite is dynamic (optional)
+"SpritePath" if exists must be the same location as the "Ruta" in the MainSprite that contains the object "Id" in the "associatedObject" field.
 
-"Script" name or identifier to attach Lua script logic (optional)
+"Script" if exists must be the same location as the "Id" in the EventScript that contains the object "Id" in the "associatedObject" field.
 
 Any additional metadata relevant for gameplay or logic (e.g., dialogue IDs, triggers)
 
 Additional requirements:
+
+- All interactions in the game are handled via 2D colliders (OnTriggerEnter2D). Therefore, make sure that the colliders for NPCs and interactive objects are large enough so the player does not need to be exactly on top of them to interact. Adjust the colliderSize accordingly for a comfortable interaction distance.
+
+- In the "Metadata" field of each object, include the minimal set of attributes that are required for communication and gameplay logic (e.g., coins, health, inventory, etc.). These attributes will be used and updated by the scripts and communication system during gameplay.
 
 Use arrays or dictionaries as needed to organize options or nested data.
 
@@ -64,10 +70,11 @@ Example output snippet:
         "collider": true,
         "colliderSize": [1.0, 2.0]
       },
-      "SpritePath": "sprites/guard_idle",
-      "Script": "npc_guard.lua",
+      "SpritePath": "C:/Users/bombi/AppData/LocalLow/DefaultCompany/My project\\prueba\\sprites\\scene_1/png/scene_1_sprite_1.png",
+      "Script": "scene_1_script_1.lua",
       "Metadata": {
-        "DialogueId": "guard_intro"
+        "health": 100,
+        "coins": 0
       }
     },
     {
@@ -80,8 +87,8 @@ Example output snippet:
         "collider": true,
         "colliderSize": [0.5, 0.5]
       },
-      "SpritePath": "sprites/coin_gold",
-      "Script": null,
+      "SpritePath": "C:/Users/bombi/AppData/LocalLow/DefaultCompany/My project\\prueba\\sprites\\scene_1/png/scene_1_sprite_2.png",
+      "Script": "scene_1_script_2.lua",
       "Metadata": {}
     }
   ]
