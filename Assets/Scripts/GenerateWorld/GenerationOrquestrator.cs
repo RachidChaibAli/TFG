@@ -90,81 +90,38 @@ public class GenerationOrquestrator
     {
         if (string.IsNullOrEmpty(WorldName) || string.IsNullOrEmpty(UserPrompt))
         {
-            Debug.LogError("El nombre del mundo y el prompt no pueden estar vacíos.");
+            Debug.LogError("El nombre del mundo y el prompt no pueden estar vacï¿½os.");
             return;
         }
 
-        //await ParsePrompt();
+        Debug.Log($"Iniciando generaciï¿½n del mundo: {WorldName} con el prompt: {UserPrompt}");
+
+        await ParsePrompt();
+
         BasePrompt = File.ReadAllText(Path.Combine(WorldPath, "basePrompt.txt"));
 
-        //generateScenes = new GenerateScenes(BasePrompt, geminiClient, WorldPath);
+        Debug.Log($"Prompt base cargado: {BasePrompt}");
 
-        //Scenes = await generateScenes.GenerateAllScenes();
-        
-        Scenes.Clear();
-        int i = 1;
-        while (true)
+        Debug.Log($"Generando escenas para el mundo: {WorldName}");
+
+        generateScenes = new GenerateScenes(BasePrompt, geminiClient, WorldPath);
+
+        LoadScenes(); // Cargar escenas existentes si las hay
+        if(Scenes.Count > 0)
         {
-            string sceneFolder = Path.Combine(WorldPath, $"scene_{i}");
-            string sceneInfoPath = Path.Combine(sceneFolder, "sceneInfo.json");
-            if (!File.Exists(sceneInfoPath))
-                break;
-
-            try
-            {
-                string json = File.ReadAllText(sceneInfoPath);
-                var escena = JsonConvert.DeserializeObject<Escena>(json);
-                if (escena != null)
-                {
-                    Scenes.Add(escena);
-                    Debug.Log($"Escena cargada: {escena.Id} ({sceneInfoPath})");
-                }
-                else
-                {
-                    Debug.LogWarning($"No se pudo deserializar la escena en: {sceneInfoPath}");
-                }
-            }
-            catch (System.Exception ex)
-            {
-                Debug.LogError($"Error al cargar la escena {sceneInfoPath}: {ex.Message}");
-            }
-            i++;
+            Debug.Log($"Se encontraron {Scenes.Count} escenas existentes en el mundo: {WorldName}");
+        }
+        else
+        {
+            Debug.Log("No se encontraron escenas existentes. Generando nuevas escenas...");
+            Scenes = await generateScenes.GenerateAllScenes();
         }
         
         
-        /*
+
+        Debug.Log("Iniciando generaciï¿½n de sprites...");
+
         await GenerateSpritesAsync();
-
-        foreach ( var scene in Scenes)
-        {
-            var scenePath = Path.Combine(WorldPath, scene.Id);
-            if (!Directory.Exists(scenePath))
-            {
-                Directory.CreateDirectory(scenePath);
-                Debug.Log($"Carpeta de escena creada en: {scenePath}");
-            }
-            File.WriteAllText(Path.Combine(scenePath, "sceneInfo.json"), JsonConvert.SerializeObject(scene, Formatting.Indented));
-        }
-        return;
-
-        var tasks = new List<Task>();
-
-        foreach (var scene in Scenes)
-        {
-            tasks.Add( ScenePosition(scene));
-
-        }
-        await Task.WhenAll(tasks);
-        */
-
-        var tasks = new List<Task>();
-        /*
-        foreach ( var scene in Scenes)
-        {
-            tasks.Add(GenerateDialog(scene));
-        }
-        await Task.WhenAll(tasks);
-        
 
         foreach (var scene in Scenes)
         {
@@ -174,8 +131,37 @@ public class GenerationOrquestrator
                 Debug.Log($"Carpeta de escena creada en: {Path.Combine(SpritesPath, scene.Id, "png")}");
             }
         }
+
+        Debug.Log("Sprites generados y guardados.");
+
+
+        if (Scenes.Count == 0)
+        {
+            Debug.LogError("No se generaron escenas. Verifica el prompt y la configuraciï¿½n.");
+            return;
+        }
+
+        Debug.Log($"Se generaron {Scenes.Count} escenas para el mundo: {WorldName}");
+
+        Debug.Log("Iniciando generacion de dialogos...");
+
+        var tasks = new List<Task>();
         
+        foreach ( var scene in Scenes)
+        {
+            tasks.Add(GenerateDialog(scene));
+        }
+        await Task.WhenAll(tasks);
+
+        Debug.Log("Generaciï¿½n de diï¿½logos completada.");
+
+        
+
+
+
         pixianAIClient = new PixianAIClient();
+
+        Debug.Log("Iniciando eliminaciï¿½n de fondos de sprites...");
 
         tasks.Clear();
         foreach (var scene in Scenes)
@@ -183,18 +169,27 @@ public class GenerationOrquestrator
             tasks.Add(RemoveBackgroundAsync(scene));
         }
         await Task.WhenAll(tasks);
-        tasks.Clear();
         
+        Debug.Log("Fondos de sprites eliminados.");
 
-        
+
+
         WriteScencesToFile();
-        
 
+        Debug.Log("Informaciï¿½n de escenas guardada.");
+
+        Debug.Log("Iniciando generaciï¿½n de descripciones de arquitectura, arquitectura y comunicaciï¿½n...");
+
+        tasks.Clear();
         foreach (var scene in Scenes)
         {
             tasks.Add(GenerateArquitectureDescription(scene));
         }
         await Task.WhenAll(tasks);
+
+        Debug.Log("Descripciones de arquitectura generadas.");
+
+        Debug.Log("Iniciando generaciï¿½n de arquitectura y comunicaciï¿½n...");
 
         tasks.Clear();
         foreach (var scene in Scenes)
@@ -210,8 +205,9 @@ public class GenerationOrquestrator
         }
         await Task.WhenAll(tasks);
         
+        Debug.Log("Arquitectura y comunicaciï¿½n generadas.");
 
-
+        Debug.Log("Iniciando generaciï¿½n de scripts...");
 
         foreach (var scene in Scenes)
         {
@@ -229,23 +225,34 @@ public class GenerationOrquestrator
             tasks.Add(GenerateScript(scene));
         }
         await Task.WhenAll(tasks);
-        Debug.Log("Generación de scripts completada.");
-        */
+        Debug.Log("Generaciï¿½n de mundo completada.");
+
+        Debug.Log($"Mundo generado: {WorldName} con {Scenes.Count} escenas.");
+
+        Debug.Log("Instanciando objetos de la escena...");
+
         GameOrquestrator.Instance.InstantiateSceneObjects(Scenes.First().Id);
     }
 
     private async Task ParsePrompt()
     {
+        var basePromptPath = Path.Combine(WorldPath, "basePrompt.txt");
+        if (File.Exists(basePromptPath))
+        {
+            Debug.Log($"Prompt base ya existe en: {basePromptPath}");
+            BasePrompt = File.ReadAllText(basePromptPath);
+            return;
+        }
         var responseText = await geminiClient.GenerateContentAsync(InitialPrompt + "\n" + UserPrompt);
-        File.WriteAllText(Path.Combine(WorldPath, "basePrompt.txt"), responseText);
+        File.WriteAllText(basePromptPath, responseText);
         BasePrompt = responseText;
         Debug.Log("Prompt base generado:\n" + BasePrompt);
-        Debug.Log($"Generación completada. Contenido guardado en: {Path.Combine(WorldPath, "basePrompt.txt")}");
+        Debug.Log($"Generaciï¿½n completada. Contenido guardado en: {basePromptPath}");
     }
 
     public async Task GenerateSpritesAsync()
     {
-        
+        int i = 1;
         foreach ( var scene in Scenes)
         {
             var scenePath = Path.Combine(SpritesPath, scene.Id);
@@ -279,22 +286,24 @@ public class GenerationOrquestrator
                 }
                 
             }
+            if(i%2 == 0)
+            {
+                Debug.Log($"Generaciï¿½n de sprites para la escena {scene.Id} completada. Pausando 5 segundos...");
+            }
 
-            
         }
     }
 
     private async Task GenerateDialog(Escena scene)
     {
-        var allScenes = File.ReadAllText(Path.Combine(WorldPath, "generateScenes.json"));
         foreach ( var npc in scene.Elementos.NPCs)
         {
             if (npc.Id == "player")
-                continue; // No generar diálogo para el jugador
+                continue; // No generar diï¿½logo para el jugador
             var npcPath = Path.Combine(WorldPath, scene.Id, $"{npc.Id}_dialog.json");
             if (!File.Exists(npcPath))
             {
-                Debug.Log($"Generando diálogo para NPC: {npc.Name} ({npc.Id}) en {npcPath}");
+                Debug.Log($"Generando diï¿½logo para NPC: {npc.Name} ({npc.Id}) en {npcPath}");
                 string mensaje = "\nThe JSON containing the complete information of the scene the ncp is in:\n" + JsonConvert.SerializeObject(scene) + "\nThe npc you must generate the dialog for:\n" + JsonConvert.SerializeObject(npc);
                 var response = await geminiClient.GenerateContentAsync( GenerateDialogPrompt + mensaje);
                 string rawText = response.Trim();
@@ -303,11 +312,11 @@ public class GenerationOrquestrator
                 if (rawText.EndsWith("```"))
                     rawText = rawText[..^3].TrimEnd();
                 File.WriteAllText(npcPath, rawText);
-                Debug.Log($"Diálogo generado y guardado para NPC: {npc.Name} ({npc.Id}) en {npcPath}");
+                Debug.Log($"Diï¿½logo generado y guardado para NPC: {npc.Name} ({npc.Id}) en {npcPath}");
             }
             else
             {
-                Debug.Log($"Diálogo ya existe para NPC: {npc.Name} ({npc.Id}) en {npcPath}");
+                Debug.Log($"Diï¿½logo ya existe para NPC: {npc.Name} ({npc.Id}) en {npcPath}");
             }
         }
     }
@@ -318,7 +327,7 @@ public class GenerationOrquestrator
         {
             if (string.IsNullOrEmpty(sprite.Ruta) || !File.Exists(sprite.Ruta))
             {
-                Debug.LogWarning($"Ruta del sprite no válida o no existe: {sprite.Ruta}");
+                Debug.LogWarning($"Ruta del sprite no vï¿½lida o no existe: {sprite.Ruta}");
                 continue;
             }
             try
@@ -334,7 +343,7 @@ public class GenerationOrquestrator
                     byte[] resultBytes;
                     if (sprite.AssociatedObject != null)
                     {
-                        resultBytes = await pixianAIClient.RemoveBackgroundAsync(imageBytes, true);
+                        resultBytes = await pixianAIClient.RemoveBackgroundAsync(imageBytes, false);
                     }
                     else
                     {
@@ -368,7 +377,7 @@ public class GenerationOrquestrator
         var arquitectureDescriptionPath = Path.Combine(scenePath, $"arquitectureDescription_{scene.Id}.txt");
         if (File.Exists(arquitectureDescriptionPath))
         {
-            Debug.Log($"Descripción de la arquitectura ya existe para la escena {scene.Id} en {arquitectureDescriptionPath}");
+            Debug.Log($"Descripciï¿½n de la arquitectura ya existe para la escena {scene.Id} en {arquitectureDescriptionPath}");
             return; // No generar de nuevo si ya existe
         }
         var response = await geminiClient.GenerateContentAsync(ArquitectureDescriptionPrompt + "\n" + JsonConvert.SerializeObject(scene, Formatting.Indented));
@@ -380,12 +389,12 @@ public class GenerationOrquestrator
             if (!string.IsNullOrEmpty(rawText))
             {
                 File.WriteAllText(Path.Combine(scenePath, $"arquitectureDescription_{scene.Id}.txt"), rawText);
-                Debug.Log($"Descripción de la arquitectura de la escena {scene.Id} generada y guardada correctamente.");
+                Debug.Log($"Descripciï¿½n de la arquitectura de la escena {scene.Id} generada y guardada correctamente.");
             }
         }
         catch (JsonException ex)
         {
-            Debug.LogError($"Error al deserializar la descripción de la arquitectura de la escena: {ex.Message}");
+            Debug.LogError($"Error al deserializar la descripciï¿½n de la arquitectura de la escena: {ex.Message}");
         }
     }
 
@@ -400,7 +409,7 @@ public class GenerationOrquestrator
         }
         else
         {
-            Debug.LogWarning($"No se encontró la descripción de la arquitectura para la escena {scene.Id}. Generando sin descripción.");
+            Debug.LogWarning($"No se encontrï¿½ la descripciï¿½n de la arquitectura para la escena {scene.Id}. Generando sin descripciï¿½n.");
         }
         var arquitecturePath = Path.Combine(scenePath, $"architecture_{scene.Id}.json");
         if (File.Exists(arquitecturePath))
@@ -436,14 +445,14 @@ public class GenerationOrquestrator
         var arquitectureDescriptionPath = Path.Combine(scenePath, $"arquitectureDescription_{scene.Id}.txt");
         if (!File.Exists(arquitecturePath) || !File.Exists(arquitectureDescriptionPath))
         {
-            Debug.LogWarning($"No se encontró la arquitectura o descripción de la arquitectura para la escena {scene.Id}. Generando sin estos datos.");
+            Debug.LogWarning($"No se encontrï¿½ la arquitectura o descripciï¿½n de la arquitectura para la escena {scene.Id}. Generando sin estos datos.");
         }
         string arquitectureContent = File.Exists(arquitecturePath) ? File.ReadAllText(arquitecturePath) : string.Empty;
         string arquitectureDescriptionContent = File.Exists(arquitectureDescriptionPath) ? File.ReadAllText(arquitectureDescriptionPath) : string.Empty;
         var generatedCommunicationPath = Path.Combine(scenePath, $"communication_{scene.Id}.json");
         if (File.Exists(generatedCommunicationPath))
         {
-            Debug.Log($"Comunicación ya existe para la escena {scene.Id} en {generatedCommunicationPath}");
+            Debug.Log($"Comunicaciï¿½n ya existe para la escena {scene.Id} en {generatedCommunicationPath}");
             return; // No generar de nuevo si ya existe
         }
         var response = await geminiClient.GenerateContentAsync(CommunicationPrompt + "\n" + JsonConvert.SerializeObject(scene, Formatting.Indented) + "\nArquitecture:\n" + arquitectureContent + "\nArquitecture description:\n" + arquitectureDescriptionContent);
@@ -459,12 +468,12 @@ public class GenerationOrquestrator
             if (!string.IsNullOrEmpty(rawText))
             {
                 File.WriteAllText(Path.Combine(scenePath, $"communication_{scene.Id}.json"), rawText);
-                Debug.Log($"Comunicación de la escena {scene.Id} generada y guardada correctamente.");
+                Debug.Log($"Comunicaciï¿½n de la escena {scene.Id} generada y guardada correctamente.");
             }
         }
         catch (JsonException ex)
         {
-            Debug.LogError($"Error al deserializar la comunicación de la escena: {ex.Message}");
+            Debug.LogError($"Error al deserializar la comunicaciï¿½n de la escena: {ex.Message}");
         }
     }
 
@@ -525,6 +534,38 @@ public class GenerationOrquestrator
             {
                 Debug.Log($"Script ya existe: {script.Name} ({script.Id}) en {scriptPath}");
             }
+        }
+    }
+
+    private void LoadScenes()
+    {
+        int i = 1;
+        while (true)
+        {
+            string sceneFolder = Path.Combine(WorldPath, $"scene_{i}");
+            string sceneInfoPath = Path.Combine(sceneFolder, "sceneInfo.json");
+            if (!File.Exists(sceneInfoPath))
+                break;
+
+            try
+            {
+                string json = File.ReadAllText(sceneInfoPath);
+                var escena = JsonConvert.DeserializeObject<Escena>(json);
+                if (escena != null)
+                {
+                    Scenes.Add(escena);
+                    Debug.Log($"Escena cargada: {escena.Id} ({sceneInfoPath})");
+                }
+                else
+                {
+                    Debug.LogWarning($"No se pudo deserializar la escena en: {sceneInfoPath}");
+                }
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"Error al cargar la escena {sceneInfoPath}: {ex.Message}");
+            }
+            i++;
         }
     }
 

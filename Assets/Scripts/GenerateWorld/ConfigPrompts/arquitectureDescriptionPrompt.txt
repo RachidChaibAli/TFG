@@ -8,15 +8,17 @@ IMPORTANT: The only allowed mechanics are basic trigger-based interactions. The 
 
 Your task is to write a comprehensive, structured English description of the scene's architecture and gameplay systems. This description will serve as the foundation for generating the architecture JSON, communication/events, and scripting logic in subsequent steps.
 
+
 Your output must:
 
-Clearly describe all key objects, NPCs, and interactive elements in the scene, including their roles, relationships, and intended behaviors.
-Specify the main gameplay systems present in the scene, such as inventory, item collection, triggers, and interactions. All of these must be handled via 2D colliders/triggers.
-Explain how the player interacts with the environment and objects (e.g., via 2D colliders, proximity, or specific actions—all using triggers).
-Detail any special mechanics (e.g., coins, quest progression) and how they are expected to function, always through 2D collider triggers.
-List all attributes and metadata that must be tracked for each object or NPC (e.g., inventory, quest flags).
-Describe the expected communication flow between objects, NPCs, and the player (e.g., event triggers, method calls, receiver roles), making clear that all communication is via 2D collider triggers.
-Provide enough detail so that the next steps (architecture JSON, communication, scripts) can be generated accurately and consistently.
+- Clearly describe all key objects, NPCs, and interactive elements in the scene, including their roles, relationships, and intended behaviors.
+- Always include the player in the scene description. If the scene is not "scene_1", only mention the player by id ("player") and position, without extra details.
+- Specify the main gameplay systems present in the scene, such as inventory, item collection, triggers, and interactions. All of these must be handled via 2D colliders/triggers.
+- Indicate clearly where the level ends (for example, a special object, trigger, or location that marks the end of the level).
+- Detail any special mechanics (e.g., coins, quest progression) and how they are expected to function, always through 2D collider triggers.
+- List all attributes and metadata that must be tracked for each object or NPC (e.g., inventory, quest flags).
+- Describe the expected communication flow between objects, NPCs, and the player (e.g., event triggers, method calls, receiver roles), making clear that all communication is via 2D collider triggers.
+- Provide enough detail so that the next steps (architecture JSON, communication, scripts) can be generated accurately and consistently.
 
 Additional requirements:
 
@@ -28,18 +30,22 @@ Do not invent or describe any interaction or communication system that is not ba
 
 Example output:
 
+
 Scene Architecture Description:
 
 The scene is a medieval village square with the following key elements:
-The player character starts at the southern entrance.
-Two NPCs: a merchant (offers items for sale and dialogue) and a guard (blocks access to the northern gate unless the player has a pass).
-Several collectible gold coins scattered around the square.
-An interactive fountain in the center that restores player health when used.
+- The player character (id: "player") starts at the southern entrance. (If this were not scene_1, only mention the player by id and position.)
+- Two NPCs: a merchant (offers items for sale and dialogue) and a guard (blocks access to the northern gate unless the player has a pass).
+- Several collectible gold coins scattered around the square.
+- An interactive fountain in the center that restores player health when used.
+- A special gate at the north end marks the end of the level. Reaching this gate completes the scene.
+
 Gameplay systems:
-Dialogue: The player can initiate conversations with the merchant and guard via proximity triggers.
-Inventory: The player can collect coins and purchase items from the merchant.
-Access control: The guard checks for a "pass" item in the player's inventory before allowing passage.
-Health: The player has a health attribute that can be restored at the fountain.
+- Dialogue: The player can initiate conversations with the merchant and guard via proximity triggers.
+- Inventory: The player can collect coins and purchase items from the merchant.
+- Access control: The guard checks for a "pass" item in the player's inventory before allowing passage.
+- Health: The player has a health attribute that can be restored at the fountain.
+- Level end: The scene ends when the player reaches the special gate at the north end.
 All interactions are handled via 2D colliders with comfortable interaction ranges.
 Each object and NPC tracks relevant metadata, such as health, coins, inventory, and dialogue state.
 Communication between objects is event-driven; for example, the merchant triggers a "StartDialogue" event when the player approaches, and the guard listens for an "OnShowPass" event.

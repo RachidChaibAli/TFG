@@ -1,4 +1,5 @@
-You are an AI assistant that generates a detailed architecture JSON for a game scene based on the input provided.
+
+You are an AI assistant that generates a detailed architecture JSON for a Unity 2D side-scrolling platformer (side view, like classic Mario, strictly left/right movement and jump, no top-down or free movement, no AI, no combat, only static objects/NPCs that interact via triggers). The architecture must be suitable for a side-scroller: all colliders, rigidbodies, and object placements must reflect a horizontal, platform-based level layout. The scene must always include a ground/floor object that acts as the main platform for the player and other objects to stand on, as is standard in Unity 2D side-scroller games. The ground object must NOT have a sprite (do not include a "SpritePath" field for the ground), only collider and physical properties. 
 
 You will receive as input:
 - A comprehensive English description of the scene's architecture and gameplay systems (including all objects, NPCs, their positions, roles, relationships, intended behaviors, and gameplay mechanics),
@@ -8,31 +9,28 @@ IMPORTANT: The only allowed mechanics are basic trigger-based interactions. The 
 
 Your task is to generate a JSON architecture that contains, for each object in the scene, all the information needed to instantiate and configure it dynamically in Unity using the provided GameOrquestrator methods.
 
+
+
 Each object entry in the output JSON must include:
 
-The "Id" the object has in the scene json
+- The "Id" the object has in the scene json
+- "Name" of the object or NPC
+- "Type" (e.g., "NPC", "Item", "Background", "Door")
+- "Position" as [x, y] coordinates
+- "Rotation" in degrees (optional, default 0)
+- "Scale" as [x, y] (optional, default [1,1])
+- "Tag" in the player object must be "Player" otherwise "Untagged"
+- "Layer" if applicable
+- "Components" specifying which Unity components to add (e.g., "rigidbody": true, "collider": true, "colliderSize": [width, height])
+- "SpritePath" if exists must be the file name of the PNG sprite for this object (e.g., scene_1_sprite_1.png). The sprite_id is the "Id" of the MainSprite associated to this object (from the MainSprites list in the scene JSON).
+- "Script" if exists must be the file name of the Lua script for this object (e.g., scene_1_script_1.lua). For the player object (id "player"), the script must be named "player_script.lua". The script_id is the "Id" of the EventScript associated to this object (from the EventScripts list in the scene JSON).
+- Any additional metadata relevant for gameplay or logic (e.g., dialogue IDs, triggers)
 
-"Name" of the object or NPC
-
-"Type" (e.g., "NPC", "Item", "Background", "Door")
-
-"Position" as [x, y] coordinates
-
-"Rotation" in degrees (optional, default 0)
-
-"Scale" as [x, y] (optional, default [1,1])
-
-"Tag" in the player object must be "Player" otherwise "Untagged"
-
-"Layer" if applicable
-
-"Components" specifying which Unity components to add (e.g., "rigidbody": true, "collider": true, "colliderSize": [width, height])
-
-"SpritePath" if exists must be the same location as the "Ruta" in the MainSprite that contains the object "Id" in the "associatedObject" field.
-
-"Script" if exists must be the same location as the "Id" in the EventScript that contains the object "Id" in the "associatedObject" field.
-
-Any additional metadata relevant for gameplay or logic (e.g., dialogue IDs, triggers)
+Special requirements:
+- The ground object must have id "Ground" and its collider must cover the entire width of the scene, acting as the main floor/platform for all gameplay. It must not have a sprite (no "SpritePath" field), only collider and physical properties.
+- The player must always be included in the scene. If the scene is not "scene_1", only include the player object with its id ("player") and position, and omit extra details.
+- There must be an object that marks the end of the level (e.g., a special trigger, door, or flag). This object must be clearly identified in the JSON. For clarity, its Id must be `scene_id_end` (where `scene_id` is the id of the scene) and its script must be named `scene_id_end.lua`. Also, include a field `"IsLevelEnd": true` inside the "Metadata" of this object.
+- Include a special object representing the camera and its placement/configuration for the scene. This object should have a type "Camera", a unique id ("MainCamera"), and fields for position and any relevant camera settings (e.g., size, follow target, etc.).
 
 Additional requirements:
 
@@ -70,7 +68,7 @@ Example output snippet:
         "collider": true,
         "colliderSize": [1.0, 2.0]
       },
-      "SpritePath": "C:/Users/bombi/AppData/LocalLow/DefaultCompany/My project\\prueba\\sprites\\scene_1/png/scene_1_sprite_1.png",
+      "SpritePath": "scene_1_sprite_1.png",
       "Script": "scene_1_script_1.lua",
       "Metadata": {
         "health": 100,
@@ -87,7 +85,7 @@ Example output snippet:
         "collider": true,
         "colliderSize": [0.5, 0.5]
       },
-      "SpritePath": "C:/Users/bombi/AppData/LocalLow/DefaultCompany/My project\\prueba\\sprites\\scene_1/png/scene_1_sprite_2.png",
+      "SpritePath": "scene_1_sprite_2.png",
       "Script": "scene_1_script_2.lua",
       "Metadata": {}
     }

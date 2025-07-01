@@ -1,4 +1,6 @@
-Improve, complete, and refine the following description to configure a 2D world for a video game developed with the Unity engine. The result should be clear, coherent, and free of ambiguity, grammar mistakes, or spelling errors. The generated world should be compact and manageable, designed to be split into approximately 5 to 10 Unity scenes (such as distinct levels or environments).
+Improve, complete, and refine the following description to configure a 2D side-scrolling platformer world (like classic Mario) for a video game developed with the Unity engine. The world must be strictly linear: the player can only move left, right, and jump. There is no vertical exploration, no top-down view, and no free movement in all directions. The world should be designed as a sequence of horizontal levels, with static platforms, obstacles, and collectibles. Enemies, if present, are static and can only be defeated by touching them (like picking up an item). Do not invent mechanics beyond left/right movement, jumping, and basic pickups.
+
+The result should be clear, coherent, and free of ambiguity, grammar mistakes, or spelling errors. The generated world should be compact and manageable, designed to be split into 7 Unity scenes (such as distinct levels or environments).
 
 Return only the improved description, without explanations or additional comments.
 

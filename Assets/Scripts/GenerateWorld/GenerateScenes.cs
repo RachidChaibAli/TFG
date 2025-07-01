@@ -71,14 +71,13 @@ public class GenerateScenes
     {
         await GenerateNPCs(scene);
 
-
-
         EnsureIds(scene.Elementos?.NPCs, $"scene_{scene.Id + 1}_npc");
-
 
         await GenerateInteractiveObjects(scene);
 
-
+        Debug.Log("Esperando 60 segundos antes de generar objetos interactivos...");
+        await Task.Delay(60000);
+        
         EnsureIds(scene.Elementos?.InteractiveObjects, $"scene_{scene.Id + 1}_interactiveObject");
 
         await GenerateSprites(scene);

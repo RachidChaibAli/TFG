@@ -79,7 +79,7 @@ public class GameOrquestrator : MonoBehaviour
             if (!string.IsNullOrEmpty(objData.SpritePath))
             {
                     
-                SetDynamicSprite(obj, Path.Combine(WorldPath, objData.SpritePath + ".png"), 100f);
+                SetDynamicSprite(obj, Path.Combine(SpritesPath, sceneId, "png", objData.SpritePath), 100f);
 
 
                 if (objData.SpritePath != "null")
@@ -93,7 +93,15 @@ public class GameOrquestrator : MonoBehaviour
             // 6. Asignar script Lua si existe
             if (!string.IsNullOrEmpty(objData.Script) && objData.Script != "null")
             {
-                string scriptFile = Path.Combine(ScriptsPath, sceneId, objData.Script + ".lua");
+                string scriptFile;
+                if(objData.Id == "Player")
+                {
+                    scriptFile = Path.Combine(SpritesPath, "scene_1" ,"player_script.lua"); // Asignar script específico para el jugador
+                }
+                else
+                {
+                    scriptFile = Path.Combine(ScriptsPath, sceneId, objData.Script); // Asignar script por ID
+                }
                 if (File.Exists(scriptFile))
                 {
                     

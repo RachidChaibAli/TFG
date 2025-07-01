@@ -41,8 +41,9 @@ public class LuaBehaviour : MonoBehaviour
             luaScript.Globals["SetActive"] = (Action<bool>)SetActive;
             luaScript.Globals["DestroyObject"] = (Action)DestroyObject;
             luaScript.Globals["SetParent"] = (Action<GameObject>)SetParent;
-            luaScript.Globals["SetDynamicSprite"] = (Action<string, float>)SetDynamicSprite;
             luaScript.Globals["GetAxis"] = (Func<string, float>)GetAxis;
+            luaScript.Globals["GetPosition"] = (Func<DynValue>)GetPosition;
+            luaScript.Globals["IsJumpPressed"] = (Func<bool>)IsJumpPressed;
 
             // Llamar a onStart si existe
             if (luaOnStart.Type == DataType.Function)
@@ -98,29 +99,6 @@ public class LuaBehaviour : MonoBehaviour
         Debug.Log(mensage);
     }
 
-    public void SetDynamicSprite(string filePath, float pixelsPerUnit = 100f)
-    {
-        byte[] pngBytes = File.ReadAllBytes(filePath);
-        SetDynamicSprite(pngBytes, pixelsPerUnit);
-    }
-
-    public void SetDynamicSprite(byte[] pngBytes, float pixelsPerUnit = 100f)
-    {
-        Texture2D texture = new(2, 2);
-        texture.LoadImage(pngBytes);
-
-        Sprite sprite = Sprite.Create(
-            texture,
-            new Rect(0, 0, texture.width, texture.height),
-            new Vector2(0.5f, 0.5f),
-            pixelsPerUnit
-        );
-
-        if (!gameObject.TryGetComponent<SpriteRenderer>(out var sr))
-            sr = gameObject.AddComponent<SpriteRenderer>();
-        sr.sprite = sprite;
-    }
-
     public void SetTag(string tag)
     {
         gameObject.tag = tag;
@@ -167,4 +145,19 @@ public class LuaBehaviour : MonoBehaviour
         return Input.GetAxis(axisName);
     }
 
+    public DynValue GetPosition()
+    {
+        Vector3 pos = gameObject.transform.position;
+        // Devuelve una tabla Lua con los valores X e Y
+        return DynValue.NewTable(new Table(luaScript)
+        {
+            [1] = DynValue.NewNumber(pos.x),
+            [2] = DynValue.NewNumber(pos.y)
+        });
+    }
+
+    public bool IsJumpPressed()
+    {
+        return Input.GetKey(KeyCode.Space);
+    }
 }

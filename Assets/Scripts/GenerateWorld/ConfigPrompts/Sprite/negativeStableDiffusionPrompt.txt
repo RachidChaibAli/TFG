@@ -1,1 +1,1 @@
-multiple characters, sprite sheet, grid, turnaround, extra copies, duplicate, multi-view
+multiple characters, sprite sheet, grid, turnaround, extra copies, duplicate, multi-view, top-down view, isometric, perspective, dynamic pose, action pose, fighting, combat, 3D, overhead, aerial view, animation frames, movement blur, camera tilt, dramatic lighting, shadow play, explosion, destruction, gore, blood, violence, UI, interface, text, watermark

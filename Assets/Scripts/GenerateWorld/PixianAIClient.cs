@@ -19,7 +19,7 @@ public class PixianAIClient
         httpClient = new HttpClient();
     }
 
-    public async Task<byte[]> RemoveBackgroundAsync(byte[] imageBytes, bool testMode = true)
+    public async Task<byte[]> RemoveBackgroundAsync(byte[] imageBytes, bool testMode = false)
     {
         var authHeader = Convert.ToBase64String(System.Text.Encoding.ASCII.GetBytes($"{apiId}:{apiSecret}"));
         var request = new HttpRequestMessage(HttpMethod.Post, "https://api.pixian.ai/api/v2/remove-background");
