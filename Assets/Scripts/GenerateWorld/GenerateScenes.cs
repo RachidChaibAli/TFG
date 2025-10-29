@@ -75,9 +75,6 @@ public class GenerateScenes
 
         await GenerateInteractiveObjects(scene);
 
-        Debug.Log("Esperando 60 segundos antes de generar objetos interactivos...");
-        await Task.Delay(60000);
-        
         EnsureIds(scene.Elementos?.InteractiveObjects, $"scene_{scene.Id + 1}_interactiveObject");
 
         await GenerateSprites(scene);
@@ -93,7 +90,7 @@ public class GenerateScenes
 
         EnsureIds(scene.Elementos?.EventScripts, $"scene_{scene.Id + 1}_eventScript");
 
-        Debug.Log($"Escena {scene.Id} generada con éxito.");
+        Debug.Log($"Escena {scene.Id} generada con ï¿½xito.");
         Debug.Log($"Escena completa: {JsonConvert.SerializeObject(scene, Formatting.Indented)}");
     }
 
@@ -155,8 +152,22 @@ public class GenerateScenes
             var npcs = JsonConvert.DeserializeObject<List<NPC>>(rawText);
             if (npcs != null && npcs.Count > 0)
             {
-                scene.Elementos ??= new Elementos();
+                // Limit NPCs per scene to configurable max (default 2)
+                int maxNpcs = 2;
+                try
+                {
+                    var env = System.Environment.GetEnvironmentVariable("MAX_NPCS_PER_SCENE");
+                    if (!string.IsNullOrEmpty(env) && int.TryParse(env, out var v)) maxNpcs = v;
+                }
+                catch { }
 
+                if (npcs.Count > maxNpcs)
+                {
+                    Debug.LogWarning($"Truncating NPC list from {npcs.Count} to {maxNpcs} for scene {scene.Id} to limit generated characters.");
+                    npcs = npcs.GetRange(0, maxNpcs);
+                }
+
+                scene.Elementos ??= new Elementos();
                 scene.Elementos.NPCs = npcs;
                 Debug.Log($"Se han generado {npcs.Count} NPCs para la escena {scene.Id}.");
             }
@@ -195,6 +206,21 @@ public class GenerateScenes
             var objetosInteractivos = JsonConvert.DeserializeObject<List<InteractiveObject>>(rawText);
             if (objetosInteractivos != null && objetosInteractivos.Count > 0)
             {
+                // Limit interactive objects per scene to configurable max (default 2)
+                int maxObjs = 2;
+                try
+                {
+                    var env = System.Environment.GetEnvironmentVariable("MAX_OBJECTS_PER_SCENE");
+                    if (!string.IsNullOrEmpty(env) && int.TryParse(env, out var v)) maxObjs = v;
+                }
+                catch { }
+
+                if (objetosInteractivos.Count > maxObjs)
+                {
+                    Debug.LogWarning($"Truncating interactive objects list from {objetosInteractivos.Count} to {maxObjs} for scene {scene.Id} to limit generated objects.");
+                    objetosInteractivos = objetosInteractivos.GetRange(0, maxObjs);
+                }
+
                 scene.Elementos ??= new Elementos();
                 scene.Elementos.InteractiveObjects = objetosInteractivos;
                 Debug.Log($"Se han generado {objetosInteractivos.Count} objetos interactivos para la escena {scene.Id}.");

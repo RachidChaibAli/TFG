@@ -1,7 +1,24 @@
-Improve, complete, and refine the following description to configure a 2D side-scrolling platformer world (like classic Mario) for a video game developed with the Unity engine. The world must be strictly linear: the player can only move left, right, and jump. There is no vertical exploration, no top-down view, and no free movement in all directions. The world should be designed as a sequence of horizontal levels, with static platforms, obstacles, and collectibles. Enemies, if present, are static and can only be defeated by touching them (like picking up an item). Do not invent mechanics beyond left/right movement, jumping, and basic pickups.
+Refine and improve the user's textual description so it becomes a single, clear prompt (plain text) to be used by the next stage of the generation pipeline.
 
-The result should be clear, coherent, and free of ambiguity, grammar mistakes, or spelling errors. The generated world should be compact and manageable, designed to be split into 7 Unity scenes (such as distinct levels or environments).
+Rules for this refinement (strictly enforce):
+- The assistant must only output a single improved textual prompt. Do NOT output JSON, code, or any other artifact.
+- Respect any numeric limits explicitly stated by the user (for example: requested number of scenes). If the user does not specify a limit, default to 7 scenes.
+- If the user requests an excessively large value (for example, more than 50 scenes), clamp the number to the default (7) to avoid unbounded generation. Do not output that you clamped it—just produce the refined prompt using the clamped value.
+- Enforce the project's global design constraints: strictly side-scrolling (left/right + jump only), static world (only player moves), interactions only via 2D triggers (OnTriggerEnter2D). Do NOT introduce dynamic systems, autonomous enemies, or moving platforms unless the user explicitly requests and provides an override.
+- Where applicable, add short, concrete constraints to make later steps deterministic: naming conventions for scenes and assets, required presence of a level-end object per scene, sprite format (PNG, side-view characters, transparent background), and a recommended maximum number of main sprites per scene (suggested: 20).
 
-Return only the improved description, without explanations or additional comments.
+Tone and output:
+- Produce concise, implementation-focused language suitable to feed directly into the next prompt. Avoid high-level fiction or long narrative. Keep to 3-6 short paragraphs.
+- Fix grammar and spelling. Remove ambiguity.
+
+Default behavior:
+- If the user does not request a specific scene count, assume 7 scenes.
+Default behavior:
+- If the user does not request a specific scene count, assume 7 scenes.
+- Enforce a short, focused game scope: this pipeline ONLY produces compact 2D side-scrolling prototypes. Do NOT expand the game's scope to larger or dynamic experiences even if the user describes them. Always produce content suitable for a brief narrative experience: compact scenes, a small cast of characters, and limited interactables.
+- Hard limits (ENFORCED): assume at most 2 NPCs and at most 2 interactive objects per scene. If the user's description implies more NPCs, many interactive objects, or dynamic mechanics, rewrite and simplify the design to fit these constraints rather than increasing scope.
+- If the user provides contradictory or unsupported gameplay requests (for example, moving platforms or large-scale 3D requests), convert them to static, trigger-based alternatives suitable for a side-scroller or omit the unsupported mechanics.
+
+Return only the refined prompt text (no extra comments). The user's original description follows.
 
 User description:

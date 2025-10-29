@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using static SplitScenesClasses;
 
-public class GenerationOrquestrator 
+public class GenerationOrquestrator
 {
     private static GenerationOrquestrator _instance;
     public static GenerationOrquestrator Instance
@@ -52,7 +52,7 @@ public class GenerationOrquestrator
 
         string configPath = Path.Combine(Application.dataPath, "Scripts/GenerateWorld/ConfigPrompts");
 
-        
+
 
         InitialPrompt = File.ReadAllText(Path.Combine(configPath, "initialPrompt.txt"));
         StableDiffusionPrompt = File.ReadAllText(Path.Combine(configPath, "Sprite/stableDiffusionPrompt.txt"));
@@ -64,7 +64,7 @@ public class GenerationOrquestrator
         CommunicationPrompt = File.ReadAllText(Path.Combine(configPath, "communicationPrompt.txt"));
         ScriptFinalPrompt = File.ReadAllText(Path.Combine(configPath, "scriptFinalPrompt.txt"));
 
-        geminiClient = new GeminiClient();
+        geminiClient = GeminiClient.Instance;
 
         stableDiffusionClient = new StableDiffusionClient();
 
@@ -107,7 +107,7 @@ public class GenerationOrquestrator
         generateScenes = new GenerateScenes(BasePrompt, geminiClient, WorldPath);
 
         LoadScenes(); // Cargar escenas existentes si las hay
-        if(Scenes.Count > 0)
+        if (Scenes.Count > 0)
         {
             Debug.Log($"Se encontraron {Scenes.Count} escenas existentes en el mundo: {WorldName}");
         }
@@ -116,8 +116,8 @@ public class GenerationOrquestrator
             Debug.Log("No se encontraron escenas existentes. Generando nuevas escenas...");
             Scenes = await generateScenes.GenerateAllScenes();
         }
-        
-        
+
+
 
         Debug.Log("Iniciando generaci�n de sprites...");
 
@@ -146,8 +146,8 @@ public class GenerationOrquestrator
         Debug.Log("Iniciando generacion de dialogos...");
 
         var tasks = new List<Task>();
-        
-        foreach ( var scene in Scenes)
+
+        foreach (var scene in Scenes)
         {
             tasks.Add(GenerateDialog(scene));
         }
@@ -155,7 +155,7 @@ public class GenerationOrquestrator
 
         Debug.Log("Generaci�n de di�logos completada.");
 
-        
+
 
 
 
@@ -169,7 +169,7 @@ public class GenerationOrquestrator
             tasks.Add(RemoveBackgroundAsync(scene));
         }
         await Task.WhenAll(tasks);
-        
+
         Debug.Log("Fondos de sprites eliminados.");
 
 
@@ -197,14 +197,14 @@ public class GenerationOrquestrator
             tasks.Add(GenerateArquitecture(scene));
         }
         await Task.WhenAll(tasks);
-        
+
         tasks.Clear();
         foreach (var scene in Scenes)
         {
             tasks.Add(GenerateCommunication(scene));
         }
         await Task.WhenAll(tasks);
-        
+
         Debug.Log("Arquitectura y comunicaci�n generadas.");
 
         Debug.Log("Iniciando generaci�n de scripts...");
@@ -253,8 +253,20 @@ public class GenerationOrquestrator
     public async Task GenerateSpritesAsync()
     {
         int i = 1;
-        foreach ( var scene in Scenes)
+        // Limit number of scenes to generate sprites for. Use env var SCENE_IMAGE_LIMIT to override (set to 0 or negative for no limit).
+        int sceneLimit = 2; // default to 2 to avoid consuming many credits during tests
+       
+
+        Debug.Log($"GenerateSpritesAsync: scene image generation limit = {sceneLimit} (0 or negative means no limit)");
+
+        foreach (var scene in Scenes)
         {
+            if (sceneLimit > 0 && i > sceneLimit)
+            {
+                Debug.Log($"Skipping sprite generation for scene {scene.Id} (scene index {i}) due to SCENE_IMAGE_LIMIT={sceneLimit}");
+                i++;
+                continue;
+            }
             var scenePath = Path.Combine(SpritesPath, scene.Id);
             if (!Directory.Exists(scenePath))
             {
@@ -268,7 +280,28 @@ public class GenerationOrquestrator
                 if (!File.Exists(spritePath))
                 {
                     Debug.Log($"Generando sprite: {sprite.Name} en {spritePath}");
-                    var image = await stableDiffusionClient.GenerateImageAndSaveAsync(sprite.Description, spritePath, NegativeStableDiffusionPrompt);
+                    // Heurística simple para pedir diferentes tamaños a SD según el tipo de sprite.
+                    // Fondos y capas de fondo suelen requerir resolución más ancha para parallax.
+                    // Simple fixed sizes: use larger square sprites and a wide background to match SDXL-friendly resolutions.
+                    // Default (standard) sprites: 1024x1024. Backgrounds: 1536x640.
+                    int width = 1024, height = 1024;
+                    var descLower = (sprite.Description ?? string.Empty).ToLower();
+                    var nameLower = (sprite.Name ?? string.Empty).ToLower();
+                    var assoc = (sprite.AssociatedObject ?? string.Empty).ToLower();
+
+                    // New rule: consider a sprite as BACKGROUND only if it has no associated object.
+                    bool looksLikeBackground = string.IsNullOrEmpty(assoc);
+                    if (looksLikeBackground)
+                    {
+                        width = 1536; // wide background size
+                        height = 640;
+                        Debug.Log($"Sprite '{sprite.Name}' classified as BACKGROUND (no associated object). Requesting {width}x{height}.");
+                    }
+                    else
+                    {
+                        Debug.Log($"Sprite '{sprite.Name}' classified as STANDARD (associatedObject='{sprite.AssociatedObject}'). Requesting {width}x{height}.");
+                    }
+                    var image = await stableDiffusionClient.GenerateImageAndSaveAsync(sprite.Description, spritePath, NegativeStableDiffusionPrompt, width, height);
                     if (image)
                     {
                         Debug.Log($"Sprite generado y guardado: {sprite.Name}");
@@ -284,9 +317,9 @@ public class GenerationOrquestrator
                     Debug.Log($"Sprite ya existe: {sprite.Name} en {spritePath}");
                     sprite.Ruta = spritePath;
                 }
-                
+
             }
-            if(i%2 == 0)
+            if (i % 2 == 0)
             {
                 Debug.Log($"Generaci�n de sprites para la escena {scene.Id} completada. Pausando 5 segundos...");
             }
@@ -296,7 +329,7 @@ public class GenerationOrquestrator
 
     private async Task GenerateDialog(Escena scene)
     {
-        foreach ( var npc in scene.Elementos.NPCs)
+        foreach (var npc in scene.Elementos.NPCs)
         {
             if (npc.Id == "player")
                 continue; // No generar di�logo para el jugador
@@ -305,7 +338,7 @@ public class GenerationOrquestrator
             {
                 Debug.Log($"Generando di�logo para NPC: {npc.Name} ({npc.Id}) en {npcPath}");
                 string mensaje = "\nThe JSON containing the complete information of the scene the ncp is in:\n" + JsonConvert.SerializeObject(scene) + "\nThe npc you must generate the dialog for:\n" + JsonConvert.SerializeObject(npc);
-                var response = await geminiClient.GenerateContentAsync( GenerateDialogPrompt + mensaje);
+                var response = await geminiClient.GenerateContentAsync(GenerateDialogPrompt + mensaje);
                 string rawText = response.Trim();
                 if (rawText.StartsWith("```json"))
                     rawText = rawText[7..].TrimStart();
@@ -349,11 +382,10 @@ public class GenerationOrquestrator
                     {
                         resultBytes = imageBytes; // Si no hay objeto asociado, no se elimina el fondo
                     }
-                    
-                    
+
+
                     if (resultBytes != null && resultBytes.Length > 0)
                     {
-                        File.WriteAllBytes(sprite.Ruta, resultBytes);
                         Debug.Log($"Fondo eliminado para el sprite: {sprite.Name} ({sprite.Id})");
                         File.WriteAllBytes(pngPath, resultBytes);
                         sprite.Ruta = pngPath;
@@ -383,7 +415,7 @@ public class GenerationOrquestrator
         var response = await geminiClient.GenerateContentAsync(ArquitectureDescriptionPrompt + "\n" + JsonConvert.SerializeObject(scene, Formatting.Indented));
         Debug.Log($"Response: {response}");
         string rawText = response.Trim();
-        
+
         try
         {
             if (!string.IsNullOrEmpty(rawText))
@@ -512,7 +544,7 @@ public class GenerationOrquestrator
             if (!File.Exists(scriptPath))
             {
                 Debug.Log($"Generando script: {script.Name} ({script.Id}) en {scriptPath}");
-                
+
                 string mensaje = "\nThe JSON containing the complete information of the scene:\n" + JsonConvert.SerializeObject(scene, Formatting.Indented) +
                     "\nThe description of the architecture:\n" + arquitectureDescriptionContent +
                     "\nThe architecture of the scene:\n" + JsonConvert.SerializeObject(arquitectureContent, Formatting.Indented) +

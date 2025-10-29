@@ -45,6 +45,12 @@ For every event in the communication JSON where 'TargetId' matches this object's
 
 In onStart(), initialize all variables defined in the Metadata field of the architecture JSON for this object.
 
+Defaults for player physics (use these if metadata does not provide them):
+- jumpForce: 24 (units consistent with the Lua movement integration)
+- gravity: -40 (negative to pull the player down)
+- speed: 6 (horizontal movement speed)
+If the architecture/metadata doesn't include these values, the generated script MUST set them to the defaults above in onStart().
+
 For collectibles, implement logic in OnTriggerEnter2D to add the item to the player's inventory and destroy the object, generating the corresponding message if needed.
 
 For NPCs, implement logic in OnTriggerEnter2D to send a StartDialogue message to the system.
@@ -81,18 +87,42 @@ json
     {
       "origin": "SOURCE_ID",
       "target": "TARGET_ID",
-      "method": "ACTION",
-      "content": { ... }
+            "method": "ACTION",
+            "content": { ... }
     }
   ]
 }
 Messages must be generated only for the events defined in the communication JSON and only if the object is the SourceId of the event.
+
+IMPORTANT: The Lua functions must RETURN a STRING containing the JSON above (i.e. the function should return a Lua string such as
+    return '{"messages": [{"origin":"scene_1_object_1","target":"system","method":"PickupItem","content":{"coins":1}}]}'
+The host `LuaBehaviour` expects a string result and will parse it as JSON. Do NOT return Lua tables or other types; always return a JSON string or the string "{}".
+
+SELF IDENTIFICATION:
+- The generated script MUST set a `selfId` variable in onStart() with the object's Id (taken from the architecture/metadata input). Example:
+        selfId = "scene_1_object_1"
+    Use `selfId` as the "origin" value when creating messages.
+
+DESTRUCTION RULES (fixes for common failures):
+- To destroy the object running this script, call DestroyObject() with NO PARAMETERS. Do NOT attempt to pass a GameObject or id to DestroyObject.
+- Only non-player objects should call DestroyObject() to remove themselves (the player script must never call DestroyObject on itself via this method).
+-- When destroying a collectible after pickup, FIRST generate and return the messages required by the orchestration system (e.g., PickupItem to the orchestration layer with target "system"), THEN call DestroyObject() before returning. If the orchestration system needs to process the message before destruction, ensure the message is present in the returned JSON string.
+
+MESSAGES AND KEYS CONSISTENCY:
+-- Messages MUST use the keys exactly: origin, target, method, content (content can be null).
+-- Use "system" as the target id for messages intended for the orchestration layer (for example, pickups and scene-control messages). If the communication JSON specifies a different player id for direct player-targeted messages, follow that instead.
+- For level end triggers, use target "system" and method "nextScene".
+- For dialogues, use target "system" and method "StartDialogue".
+
+ONTRIGGER PARAMETER:
+- The OnTriggerEnter2D(other) function will receive a single string parameter `other` which is the name of the colliding GameObject (as provided by the host). You can assume OnTriggerEnter2D is only called when the colliding object has the Player tag (host filters by tag). Use `other` only for logging or extra checks; when the object needs to notify the orchestration layer about an event (for example, a pickup), set the message target to the fixed id "system" so the orchestration layer can handle it. If the event is explicitly targeted at a specific player instance, follow the communication JSON.
 
 Special rules for the player object:
 
 
 Special rules for the player object in a side-scroller:
 - The player script MUST implement full movement logic in onUpdate(dt) using GetAxis for left/right movement and IsJumpPressed for jumping, along with the appropriate C# methods (such as SetPosition, SetRotation, SetScale, etc.).
+- The player script MUST implement full movement logic in onUpdate(dt) using GetAxis for left/right movement and IsJumpPressed for jumping, along with the appropriate C# methods (such as SetPosition, SetRotation, SetScale, etc.). If the player's metadata does not specify jumpForce, gravity or speed, use the defaults: jumpForce=24, gravity=-40, speed=6.
 - The player does NOT use OnTriggerEnter2D for gameplay, but the function must exist and return "{}".
 - The player must implement all receiver methods from the communication JSON as Lua functions, with real logic (never placeholders).
 
@@ -104,8 +134,8 @@ function onStart()
     coins = 0
     inventory = {}
     speed = 6         -- Horizontal movement speed
-    jumpForce = 12    -- Force applied when jumping
-    gravity = -30     -- Simulated gravity value
+    jumpForce = 24    -- Force applied when jumping
+    gravity = -40     -- Simulated gravity value
     velocityY = 0     -- Current vertical velocity
     grounded = false  -- Is the player on the ground?
 end

@@ -32,7 +32,7 @@ public class StableDiffusionClient
 {
     private string apiKey;
 
-    public string engineId = "stable-diffusion-v1-6";
+    public string engineId = "stable-diffusion-xl-1024-v1-0";
     public string apiUrl = "https://api.stability.ai/v1/generation/";
 
     public StableDiffusionClient()
@@ -40,11 +40,18 @@ public class StableDiffusionClient
         apiKey = Environment.GetEnvironmentVariable("STABLE_DIFFUSION_API_KEY");
         if (string.IsNullOrEmpty(apiKey))
         {
-            throw new InvalidOperationException("La variable de entorno STABLE_DIFFUSION_API_KEY no está definida.");
+            throw new InvalidOperationException("La variable de entorno STABLE_DIFFUSION_API_KEY no estï¿½ definida.");
+        }
+        // Allow overriding engine via environment variable for compatibility across accounts
+        var envEngine = Environment.GetEnvironmentVariable("STABILITY_ENGINE_ID");
+        if (!string.IsNullOrEmpty(envEngine))
+        {
+            engineId = envEngine;
+            Debug.Log($"StableDiffusionClient: using engine from env: {engineId}");
         }
     }
 
-    public async Task<bool> GenerateImageAndSaveAsync(string prompt, string outputPath, string negativePrompt = null)
+    public async Task<bool> GenerateImageAndSaveAsync(string prompt, string outputPath, string negativePrompt = null, int width = 1024, int height = 1024)
     {
         string url = $"{apiUrl}{engineId}/text-to-image";
         var textPrompts = new List<TextPrompt> { new() { text = prompt, weight = 2.0f } };
@@ -57,8 +64,8 @@ public class StableDiffusionClient
         SDRequestBody requestBody = new()
         {
             text_prompts = textPrompts,
-            height = 512,
-            width = 512,
+            height = height,
+            width = width,
         };
 
         string jsonData = JsonUtility.ToJson(requestBody);
@@ -70,6 +77,7 @@ public class StableDiffusionClient
         request.SetRequestHeader("Accept", "image/png");
         request.SetRequestHeader("Authorization", $"Bearer {apiKey}");
 
+        Debug.Log($"StableDiffusionClient: POST {url}");
         var asyncOp = request.SendWebRequest();
         while (!asyncOp.isDone)
             await Task.Yield();
@@ -85,7 +93,11 @@ public class StableDiffusionClient
         }
         else
         {
-            Debug.LogError($"SD API Error: {request.error}");
+            // Log detailed info to diagnose 404/other errors
+            long responseCode = request.responseCode;
+            string responseText = string.Empty;
+            try { responseText = request.downloadHandler != null ? request.downloadHandler.text : string.Empty; } catch { }
+            Debug.LogError($"SD API Error: {request.error} (HTTP {responseCode})\nURL: {url}\nResponse: {responseText}");
             return false;
         }
     }

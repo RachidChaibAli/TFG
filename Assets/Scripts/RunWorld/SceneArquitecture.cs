@@ -9,6 +9,7 @@ public class SceneArquitecture
     public class SceneData
     {
         public string SceneId;
+        public float LevelWidth;
         public List<SceneObject> Objects;
     }
     

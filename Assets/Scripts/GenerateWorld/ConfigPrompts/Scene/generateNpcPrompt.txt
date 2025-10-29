@@ -9,7 +9,13 @@ Rules:
 - Do not generate other elements (objects, sprites, scripts) in this step.
 - The output must be a JSON array of NPC objects, each with the fields: "id", "name", and "role".
 
+Output hygiene (ENFORCED): Return ONLY the pure JSON array (no explanations, no markdown, no trailing text). Ensure the JSON parses with a standard parser. IDs must be unique within the scene and follow the format "{scene_id}_npc_{number}". Do NOT invent or emit filesystem paths or filenames in this step.
+
+IMPORTANT: To keep scenes compatible with the runtime limits, RETURN AT MOST 2 NPC objects for this scene. If the scene conceptually requires more, prioritize the most relevant NPCs and omit extras (do not place them in the response). Do not include any sprites, scripts, or other elements in this response.
+
 IMPORTANT: Only if the input JSON you receive has the "scene_1" id, you must create a special NPC that will be the main character and add an special id "player" instead of the regular one. If you do not receive the first scene or the one with "scene_1" id you MUST not create the main character.
+
+IMPORTANT (no player creation outside scene_1): Under no circumstances create an NPC with id "player" unless the input scene id is exactly "scene_1". The runtime relies on that convention.
 
 Input JSON example:
 {

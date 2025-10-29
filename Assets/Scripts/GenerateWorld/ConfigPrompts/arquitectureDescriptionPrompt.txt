@@ -6,7 +6,67 @@ A JSON describing the scene, including all objects, NPCs, their positions, roles
 
 IMPORTANT: The only allowed mechanics are basic trigger-based interactions. The world is static: only the player moves. Objects and NPCs do not move, attack, or perform any autonomous actions. The only possible interaction is when the player enters a 2D collider (OnTriggerEnter2D) of an object or NPC, which can trigger a message or event (such as collecting an item or defeating an enemy as if it were a pickup). Do not invent or describe any other mechanics, combat systems, AI, or movement for NPCs or objects. No puzzles, no environmental changes, no dynamic behaviors. Only static objects and NPCs that react to the player's trigger.
 
-Your task is to write a comprehensive, structured English description of the scene's architecture and gameplay systems. This description will serve as the foundation for generating the architecture JSON, communication/events, and scripting logic in subsequent steps.
+
+Your task is to write a comprehensive, structured English description of the scene's architecture and gameplay systems. This description will serve as the foundation for generating the architecture JSON, communication/events, and scripting logic in subsequent steps. Ensure to include per-object fields such as SuggestedColliderSize, Sprite/MainSpriteId, Script/EventScriptId, Metadata keys, and IsLevelEnd.
+
+Produce a clear, modular natural-language description that explicitly calls out the exact attributes and recommendations that the architecture generator needs to produce the JSON. Do NOT output JSON or code—only human-readable structured text (bullet lists, tables in plain text, etc.).
+
+Your output MUST include the following sections and details:
+
+1) Scene summary
+- Short one-paragraph description of the scene and its purpose (1–2 sentences).
+
+2) Objects and NPCs (one entry per object/NPC)
+- For each object/NPC, provide a short structured entry containing these fields (in plain text):
+	- Id: (exact id from the scene JSON)
+	- Name:
+	- Type: (e.g., "NPC", "Item", "Background", "Door", "Camera", "Ground")
+	- Position: [x, y] (approximate coordinates; floats)
+	- SuggestedColliderSize: [width, height] (recommended comfortable trigger size in meters)
+	- Components: list required components (rigidbody: true/false, collider: true/false)
+	- Sprite: indicate if the object needs a sprite (Yes/No) and, if yes, reference the MainSprite Id (e.g., scene_1_sprite_2)
+	- Script: indicate if a script is required and provide the EventScript Id that should be used (e.g., scene_1_script_3) or "player_script.lua" for the player
+	- Metadata: a short list of keys that must be tracked at runtime (e.g., health, coins, isOpen, dialogueState). For each key include type and a one-line purpose.
+	- IsLevelEnd: true/false (only for the level-end object; if true, include a short description of how the end trigger works)
+
+3) Gameplay systems
+- Describe, in short bullets, the systems present (dialogue, inventory, pickups, level-end) and how they are driven by 2D triggers. For each system, mention the objects that participate and the key metadata used.
+
+4) Communication / events
+- Provide a clear mapping of events that should exist (event name, typical source object id(s), intended target(s), and short description). Example: StartDialogue — source: scene_2_npc_1 — target: system — opens dialogue file scene_2_npc_1_dialog.json.
+- For level transitions, specify the id of the level-end object and the exact behavior (e.g., when player triggers `scene_2_end`, system should call `nextScene`).
+
+5) Collider and placement guidelines
+- Recommend comfortable collider sizes for NPCs and pickups (e.g., pickups: [0.5,0.5], NPCs talk radius: [1.0,1.5]).
+- Recommend vertical placement rules for platforms and player ground (ground at y=0 baseline, platform heights in ranges).
+
+6) Metadata summary table
+- List all metadata keys that the architecture JSON must include for objects (global list) with types and default/example values.
+
+Additional constraints (must obey):
+- The world is static: only the player moves. All interactions must be trigger-based (OnTriggerEnter2D). Do not propose dynamic behaviors, AI or timed mechanics.
+- Ensure the ground object exists and is identified as Id "Ground" (no Sprite). The ground collider should span the playable width.
+- Clearly identify the level-end object and require that its Metadata contains "IsLevelEnd": true.
+- If the scene is not "scene_1", include the player only with Id "player" and Position; omit extra player metadata.
+
+Style and output rules:
+- Use short, precise bullet points and a predictable structure so downstream prompts can parse the information reliably.
+- Avoid storytelling; focus on concrete architecture, components, sizes, and metadata.
+- Do not output JSON, code blocks, or extraneous commentary—only the structured natural-language description.
+
+Example object entry (plain text):
+- Id: scene_2_npc_1
+- Name: Dockmaster
+- Type: NPC
+- Position: [12.5, 3.0]
+- SuggestedColliderSize: [1.2, 1.6]
+- Components: rigidbody: false, collider: true
+- Sprite: Yes (MainSpriteId: scene_2_sprite_3)
+- Script: scene_2_script_1.lua
+- Metadata: { dialogueId: "scene_2_npc_1_dialog", questFlag: "has_pass" }
+- IsLevelEnd: false
+
+The JSON containing the scene info is:
 
 
 Your output must:

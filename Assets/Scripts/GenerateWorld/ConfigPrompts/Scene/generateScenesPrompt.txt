@@ -1,28 +1,35 @@
-Imagine you are a narrative designer for a 2D side-scrolling platformer (like classic Mario). Divide the base story or concept into exactly 7 main scenes (levels), each representing a horizontal segment of the world.
+You are a narrative designer for a 2D side‑scrolling platformer (strict side view, player can only move left, right and jump). Using the user's base description, divide the game into exactly 7 horizontal scenes (levels). Each scene must be linear and compact — suitable to implement as a single Unity scene.
 
-For each scene, provide:
-- Scene ID (scene_1, scene_2, ...)
-- A brief and descriptive title.
-- A narrative description that places the player in a linear, left-to-right environment, mentions the weather, key static characters or enemies, static obstacles, and the main events of the scene.
+Requirements for each scene entry:
+- Provide the following fields exactly (case-sensitive): "Id", "Title", "Description".
+- "Id" must follow the pattern: "scene_1", "scene_2", ...
+- "Title" must be a short descriptive title (one line).
+- "Description" must be 2–4 concise sentences that: place the player in a left-to-right setting, name the visual theme, list key static characters or NPCs, list static obstacles and collectibles, and state the main gameplay beat or objective for that scene.
 
-The scenes must be strictly linear: the player can only move left, right, and jump. There is no vertical exploration, no top-down view, and no free movement in all directions. All enemies and obstacles are static; enemies can only be defeated by touching them (like picking up an item). Do not invent mechanics beyond left/right movement, jumping, and basic pickups.
+Global constraints (must be enforced when writing descriptions):
+- The world is static: only the player moves. Do NOT include moving platforms, autonomous enemies, or dynamic hazards.
+- All interactions must be trigger-based (OnTriggerEnter2D). When mentioning enemies or hazards, describe them as static objects that the player interacts with by contact (e.g., "touch to collect/defeat").
+- Each scene must imply the presence of a level-end (a trigger/flag) and a clear left-to-right progression toward it.
+ - Keep the scene compact: recommend no more than 10 main sprites per scene and avoid describing large open areas or vertical exploration.
+ - Short-game constraint: design the game as a short, narrative-focused experience (a concise arc across the scenes). For each scene, include no more than 2 NPCs and no more than 2 interactive objects; only mention the most narratively relevant elements. Avoid sidequests, large casts, or ambitious mechanics that expand scope beyond a short prototype.
 
-The scenes should show a variety of locations, static characters, and situations relevant to the plot. Maintain coherence and narrative progression between scenes. Try to ensure the game ends in the last scene if it is a linear story.
+Formatting & output rules (strict):
+- Return ONLY a single valid JSON array (no surrounding text, no comments).
+- Use double quotes for strings and keys so the output is valid JSON.
+- The array must contain exactly 7 objects, each with keys: "Id", "Title", "Description".
 
-You should try, as much as possible given the limitation on the number of scenes, to include everything explained in the base prompt.
-
-Return the answer as a JSON with a list of scenes only, nothing else.
-
-The JSON must be a list of scenes with these attributes: id, title, description.
-
-Example of structure:
+Example (exact JSON format expected):
 [
     {
-        Id: scene_1,
-        Title: ...,
-        Description:...
+        "Id": "scene_1",
+        "Title": "Grassy Plains",
+        "Description": "A sunny, gentle tutorial level introducing left/right movement and jump. Static platforms and a few coin collectibles are arranged linearly; a friendly NPC and a static hazard teach basic interactions. The player moves left to right toward a flag that ends the level."
     },
-    ...
+    {
+        "Id": "scene_2",
+        "Title": "Forest Edge",
+        "Description": "[...repeat pattern for other scenes...]"
+    }
 ]
 
-The base prompt is:
+Return only the JSON array. The user's base prompt:

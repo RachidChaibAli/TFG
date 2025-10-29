@@ -9,6 +9,12 @@ Rules:
 - Do not generate NPCs, sprites, or scripts in this step.
 - The output must be a JSON array of interactive object entries, each with the fields: "id", "name" , and "description".
 
+Output hygiene (ENFORCED): Return ONLY the pure JSON array (no explanations, no markdown, no trailing text). Ensure the JSON parses with a standard parser. IDs must be unique within the scene and follow the format "{scene_id}_object_{number}". Do NOT include file names, paths, or Sprite information in this step.
+
+IMPORTANT: To keep scenes compatible with the runtime limits, RETURN AT MOST 2 interactive objects for this scene. If the scene requires more, select the most relevant objects and omit extras. Do not include NPCs, sprites, or scripts in this response.
+
+IMPORTANT (no extra fields): Do not add extra keys to the objects. Only include id, name and description in this response. Runtime fields such as SpritePath or Script will be handled in later pipeline steps.
+
 Input JSON example:
 {
   "id": "scene_2",
